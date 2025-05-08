@@ -12,6 +12,9 @@
 
 *Tasks ready to be worked on, prioritized and scheduled for the current sprint/cycle.*
 
+- [TASK-106: Update WebhookService to integrate with backend API](../tasks/frontend/TASK-106.md) `integration` `api` `frontend` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+- [TASK-007: Implement webhook history tracking](../tasks/backend/TASK-007.md) `api` `database` `backend` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+
 ## ⏳ In Progress
 
 *Tasks currently being worked on by an agent.*
@@ -20,12 +23,12 @@
 
 *Tasks completed and awaiting review/testing.*
 
-- [TASK-101: Create main App layout component with a persistent sidebar for navigation](../tasks/frontend/TASK-101.md) `ui` `react` `layout` `navigation` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent
-- [TASK-105: Implement Webhook Configuration Form and Management UI](../tasks/frontend/TASK-105.md) `ui` `react` `forms` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent
-
 ## ✅ Done (Last 7 days)
 
 *Recently completed tasks and user stories.*
+
+- [TASK-101: Create main App layout component with a persistent sidebar for navigation](../tasks/frontend/TASK-101.md) `ui` `react` `layout` `navigation` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent (2024-09-27)
+- [TASK-105: Implement Webhook Configuration Form and Management UI](../tasks/frontend/TASK-105.md) `ui` `react` `forms` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent (2024-09-27)
 
 - [US-001: Receive TradingView Webhook](../stories/backend/US-001.md) `webhook` `api` `security` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
   - [TASK-001: Set up basic Flask application structure](../tasks/backend/TASK-001.md) `setup` `flask` `architecture` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
