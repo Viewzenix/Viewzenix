@@ -1,12 +1,11 @@
 # Project Kanban Board
-> Last updated: 2024-05-08
+> Last updated: 2024-05-10
 
 ## 📋 Backlog
 
 *Tasks and user stories that are not yet scheduled for implementation.*
 
 - [US-010: Basic UI Navigation](../stories/frontend/US-010.md) `ui` `navigation` `core-functionality` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
-  - [TASK-101: Create main App layout component with a persistent sidebar for navigation](../tasks/frontend/TASK-101.md) `ui` `react` `layout` `navigation` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
   - [TASK-104: Populate Sidebar with links to the main pages, indicate active page](../tasks/frontend/TASK-104.md) `ui` `react` `navigation` ![Priority: Medium](https://img.shields.io/badge/Priority-Medium-yellow)
 
 ## 🔍 To Do
@@ -26,7 +25,7 @@
 
 *Tasks completed and awaiting review/testing.*
 
-<!-- No tasks in review yet -->
+- [TASK-101: Create main App layout component with a persistent sidebar for navigation](../tasks/frontend/TASK-101.md) `ui` `react` `layout` `navigation` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent
 
 ## ✅ Done (Last 7 days)
 

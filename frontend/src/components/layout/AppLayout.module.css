@@ -1,0 +1,130 @@
+.layoutContainer {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: rgb(15, 23, 42);
+  color: white;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.collapsed {
+  width: 70px;
+}
+
+.logoContainer {
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgb(14, 165, 233); /* primary-500 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toggleButton {
+  position: absolute;
+  top: 80px;
+  right: -12px;
+  height: 24px;
+  width: 24px;
+  background-color: rgb(15, 23, 42);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  color: rgb(14, 165, 233); /* primary-500 */
+  padding: 0;
+  font-size: 12px;
+}
+
+.navigation {
+  padding: 1rem 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.navList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.navItem {
+  margin-bottom: 0.25rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.2s, color 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.navLink:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.navLink.active {
+  background-color: rgba(14, 165, 233, 0.1); /* primary-500 at 10% opacity */
+  color: rgb(14, 165, 233); /* primary-500 */
+  border-left-color: rgb(14, 165, 233); /* primary-500 */
+}
+
+.navIcon {
+  margin-right: 1rem;
+  font-size: 1.25rem;
+  width: 20px;
+  text-align: center;
+}
+
+.navLabel {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.mainContent {
+  flex: 1;
+  overflow-y: auto;
+  background-color: rgb(var(--background-rgb));
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+  }
+  
+  .sidebar:not(.collapsed) {
+    position: fixed;
+    height: 100vh;
+    width: 250px;
+  }
+  
+  .mainContent {
+    margin-left: 0;
+  }
+}
