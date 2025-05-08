@@ -20,6 +20,17 @@ class Config:
     
     # Application settings
     WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE') or 'dev-passphrase'
+    
+    # Alpaca API settings
+    ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY', '')
+    ALPACA_API_SECRET = os.environ.get('ALPACA_API_SECRET', '')
+    ALPACA_API_URL = os.environ.get('ALPACA_API_URL', 'https://paper-api.alpaca.markets')  # Default to paper trading
+    
+    # Order processing settings
+    SIMULATION_MODE = os.environ.get('SIMULATION_MODE', 'True').lower() == 'true'  # Default to simulation mode for safety
+    DEFAULT_ORDER_QUANTITY = int(os.environ.get('DEFAULT_ORDER_QUANTITY', 1))
+    POSITION_SIZING_METHOD = os.environ.get('POSITION_SIZING_METHOD', 'fixed')  # fixed, percentage, risk
+    POSITION_SIZE_VALUE = float(os.environ.get('POSITION_SIZE_VALUE', 1.0))  # Used differently based on method
 
 
 class DevelopmentConfig(Config):
@@ -44,6 +55,13 @@ class ProductionConfig(Config):
     # Ensure WEBHOOK_PASSPHRASE is set in production
     WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE')
     
+    # Ensure Alpaca API keys are set in production
+    ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY')
+    ALPACA_API_SECRET = os.environ.get('ALPACA_API_SECRET')
+    
+    # Disable simulation mode in production by default
+    SIMULATION_MODE = os.environ.get('SIMULATION_MODE', 'False').lower() == 'true'
+    
     @classmethod
     def init_app(cls, app):
         """
@@ -55,6 +73,8 @@ class ProductionConfig(Config):
         # Ensure critical config vars are set
         assert cls.SECRET_KEY, "SECRET_KEY environment variable must be set"
         assert cls.WEBHOOK_PASSPHRASE, "WEBHOOK_PASSPHRASE environment variable must be set"
+        assert cls.ALPACA_API_KEY, "ALPACA_API_KEY environment variable must be set"
+        assert cls.ALPACA_API_SECRET, "ALPACA_API_SECRET environment variable must be set"
 
 
 # Map of environment names to configuration classes

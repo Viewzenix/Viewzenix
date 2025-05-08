@@ -10,6 +10,9 @@ import uuid
 
 from app.api.middlewares.validation import validate_schema
 from app.utils.logging_bus import LoggingBus, sanitize_log_data
+from app.core.services.trade_router import TradeRouter, TradeError
+from app.core.services.order_engine import OrderEngine, OrderSizingError
+from app.core.adapters.alpaca_adapter import AlpacaAdapter, BrokerError
 
 # Create blueprint
 webhook_bp = Blueprint('webhook', __name__, url_prefix='/webhook')
@@ -75,13 +78,59 @@ def receive_webhook() -> Tuple[Any, int]:
             }
         )
         
-        # In a future implementation, this would call a service to process the webhook
-        # For now, just acknowledge receipt
-        return jsonify({
+        # Initialize services
+        trade_router = TradeRouter()
+        broker_adapter = AlpacaAdapter()
+        order_engine = OrderEngine(broker_adapter)
+        
+        # Process the webhook through our services
+        trade = trade_router.process_webhook(payload)
+        order_status = order_engine.process_trade(trade)
+        
+        # Prepare response based on order status
+        response_data = {
             "status": "success",
-            "message": "Webhook received successfully",
-            "request_id": request_id
-        }), 200
+            "message": "Order processed successfully",
+            "request_id": request_id,
+            "order": {
+                "id": order_status.order_id,
+                "status": order_status.status,
+                "symbol": order_status.symbol,
+                "side": order_status.side.value,
+                "quantity": order_status.quantity,
+                "filled_quantity": order_status.filled_quantity,
+                "simulation_mode": order_status.is_simulated
+            }
+        }
+        
+        return jsonify(response_data), 200
+        
+    except TradeError as e:
+        # Handle trade routing errors
+        logger.error(f"Trade error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "code": "TRADE_ERROR",
+            "message": str(e)
+        }), 400
+        
+    except OrderSizingError as e:
+        # Handle order sizing errors
+        logger.error(f"Order sizing error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "code": "ORDER_SIZING_ERROR",
+            "message": str(e)
+        }), 400
+        
+    except BrokerError as e:
+        # Handle broker-related errors
+        logger.error(f"Broker error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "code": "BROKER_ERROR",
+            "message": str(e)
+        }), 502  # Bad Gateway for broker issues
         
     except Exception as e:
         # Log the error

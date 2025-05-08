@@ -1,7 +1,7 @@
 ---
 id: "TASK-001"
 title: "Set up basic Flask application structure"
-status: "review" # backlog, todo, in-progress, review, done
+status: "done" # backlog, todo, in-progress, review, done
 priority: "high" # low, medium, high, critical
 assignee: "backend-agent"
 epic: "EPIC-1.1"

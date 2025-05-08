@@ -1,7 +1,7 @@
 ---
 id: "TASK-002"
 title: "Define /webhook route in a Flask Blueprint"
-status: "review" # backlog, todo, in-progress, review, done
+status: "done" # backlog, todo, in-progress, review, done
 priority: "high" # low, medium, high, critical
 assignee: "backend-agent"
 epic: "EPIC-1.1"
