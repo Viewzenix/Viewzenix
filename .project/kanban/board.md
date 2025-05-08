@@ -26,6 +26,7 @@
 *Tasks completed and awaiting review/testing.*
 
 - [TASK-101: Create main App layout component with a persistent sidebar for navigation](../tasks/frontend/TASK-101.md) `ui` `react` `layout` `navigation` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent
+- [TASK-105: Implement Webhook Configuration Form and Management UI](../tasks/frontend/TASK-105.md) `ui` `react` `forms` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @frontend-agent
 
 ## ✅ Done (Last 7 days)
 
