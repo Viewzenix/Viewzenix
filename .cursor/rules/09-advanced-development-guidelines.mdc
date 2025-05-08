@@ -1,0 +1,527 @@
+---
+description: Apply advanced patterns and optimization techniques when implementing complex features
+globs: 
+alwaysApply: false
+---
+# Advanced Development Guidelines
+
+## 🔍 Overview
+This rule provides detailed development patterns, code examples, and best practices for the Viewzenix trading webhook platform. These guidelines are more specific and contextual than the core standards and should be applied when implementing complex features.
+
+## 📝 Detailed Code Patterns
+
+### React Component Structure
+Follow this pattern for React components:
+
+```tsx
+// Import dependencies
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+
+// Import local files
+import { someAction } from '../store/actions';
+import { SomeProps } from '../types';
+import { formatData } from '../utils';
+import styles from './Component.module.css';
+
+// Component interface
+interface ComponentProps {
+  data: SomeProps;
+  onAction?: (id: string) => void;
+}
+
+// Component implementation
+export const Component: React.FC<ComponentProps> = ({ data, onAction }) => {
+  // Hooks
+  const [state, setState] = useState<string>('');
+  const dispatch = useDispatch();
+  
+  // Effects
+  useEffect(() => {
+    // Effect logic
+  }, [dependencies]);
+  
+  // Event handlers
+  const handleClick = () => {
+    if (onAction) {
+      onAction(data.id);
+    }
+  };
+  
+  // Render
+  return (
+    <div className={styles.container}>
+      {/* JSX markup */}
+    </div>
+  );
+};
+```
+
+### ⚡ Advanced React Optimization
+- Use React.memo() for components that render often but with the same props
+- Memoize callbacks with useCallback() to prevent unnecessary re-renders:
+  ```tsx
+  const handleClick = useCallback(() => {
+    if (onAction) {
+      onAction(data.id);
+    }
+  }, [onAction, data.id]);
+  ```
+- Use React.lazy() for code splitting large components:
+  ```tsx
+  const LazyComponent = React.lazy(() => import('./LazyComponent'));
+  
+  // In render:
+  <React.Suspense fallback={<Spinner />}>
+    <LazyComponent />
+  </React.Suspense>
+  ```
+
+### Python Function Structure
+Follow this pattern for Python functions:
+
+```python
+def function_name(
+    param1: str,
+    param2: int,
+    optional_param: Optional[bool] = None
+) -> ResultType:
+    """
+    Function description.
+    
+    Args:
+        param1: Description of param1
+        param2: Description of param2
+        optional_param: Description of optional_param
+    
+    Returns:
+        Description of return value
+    
+    Raises:
+        ValueError: When param1 is invalid
+    """
+    # Function implementation
+    pass
+```
+
+### Python Class Structure
+Follow this pattern for Python classes:
+
+```python
+class ClassName:
+    """Class description."""
+    
+    def __init__(self, param1: str, param2: int):
+        """
+        Initialize the class.
+        
+        Args:
+            param1: Description of param1
+            param2: Description of param2
+        """
+        self.param1 = param1
+        self.param2 = param2
+    
+    def method_name(self, param: str) -> ResultType:
+        """
+        Method description.
+        
+        Args:
+            param: Description of parameter
+        
+        Returns:
+            Description of return value
+        """
+        # Method implementation
+        pass
+```
+
+## 🌐 Advanced Frontend Development
+
+### State Management Patterns
+- Use Redux for global state, following the slice pattern:
+  ```tsx
+  // botConfigSlice.ts
+  import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+  
+  interface BotConfig {
+    base_order_pct: number;
+    use_limit_orders: boolean;
+    // ...other config properties
+  }
+  
+  const initialState: BotConfig = {
+    base_order_pct: 0.02,
+    use_limit_orders: false,
+    // ...default values
+  };
+  
+  const botConfigSlice = createSlice({
+    name: 'botConfig',
+    initialState,
+    reducers: {
+      updateConfig(state, action: PayloadAction<Partial<BotConfig>>) {
+        return { ...state, ...action.payload };
+      },
+      resetConfig() {
+        return initialState;
+      }
+    }
+  });
+  
+  export const { updateConfig, resetConfig } = botConfigSlice.actions;
+  export default botConfigSlice.reducer;
+  ```
+
+- Use React Context for intermediate state scoping:
+  ```tsx
+  // BotContext.tsx
+  const BotContext = React.createContext<BotContextValue | undefined>(undefined);
+  
+  export const BotProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+    const [state, setState] = useState<BotState>({...});
+    
+    const value = useMemo(() => ({
+      state,
+      updateState: (newState: Partial<BotState>) => 
+        setState(prevState => ({ ...prevState, ...newState }))
+    }), [state]);
+    
+    return (
+      <BotContext.Provider value={value}>
+        {children}
+      </BotContext.Provider>
+    );
+  };
+  
+  export const useBotContext = () => {
+    const context = useContext(BotContext);
+    if (context === undefined) {
+      throw new Error('useBotContext must be used within a BotProvider');
+    }
+    return context;
+  };
+  ```
+
+### 📋 Form Management
+- Use Formik or React Hook Form for complex forms:
+  ```tsx
+  import { useForm } from 'react-hook-form';
+  
+  interface BotSettingsFormData {
+    base_order_pct: number;
+    use_limit_orders: boolean;
+  }
+  
+  const BotSettingsForm = () => {
+    const { register, handleSubmit, errors } = useForm<BotSettingsFormData>();
+    
+    const onSubmit = (data: BotSettingsFormData) => {
+      // Submit data
+    };
+    
+    return (
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <input 
+          name="base_order_pct" 
+          ref={register({ required: true, min: 0.01, max: 1 })} 
+        />
+        {errors.base_order_pct && <span>This field is required</span>}
+        
+        <input 
+          type="checkbox" 
+          name="use_limit_orders" 
+          ref={register()} 
+        />
+        
+        <button type="submit">Save</button>
+      </form>
+    );
+  };
+  ```
+
+### 📊 Advanced UI Patterns
+- Implement data visualization with recharts:
+  ```tsx
+  import { LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
+  
+  const EquityChart = ({ data }) => (
+    <LineChart width={600} height={300} data={data}>
+      <XAxis dataKey="timestamp" />
+      <YAxis />
+      <Tooltip />
+      <Line type="monotone" dataKey="equity" stroke="#8884d8" />
+    </LineChart>
+  );
+  ```
+
+- Create reusable modal dialogs:
+  ```tsx
+  const Modal = ({ isOpen, onClose, title, children }) => {
+    if (!isOpen) return null;
+    
+    return (
+      <div className="modal-overlay">
+        <div className="modal">
+          <div className="modal-header">
+            <h2>{title}</h2>
+            <button onClick={onClose}>×</button>
+          </div>
+          <div className="modal-content">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  ```
+
+## 🖥️ Advanced Backend Development
+
+### Flask Blueprint Pattern
+```python
+# app/api/routes/webhook.py
+from flask import Blueprint, request, jsonify
+
+from app.core.services.trade_classifier import get_asset_class
+from app.utils.logging_bus import log_event
+
+webhook_bp = Blueprint('webhook', __name__)
+
+@webhook_bp.route('/webhook', methods=['POST'])
+def receive_webhook():
+    """Receive and process webhook from TradingView."""
+    try:
+        data = request.json
+        # Validate JSON
+        # Process webhook
+        log_event('webhook_received', data)
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        log_event('webhook_error', {'error': str(e)})
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+```
+
+### 💉 Dependency Injection Pattern
+```python
+# Service class with dependency injection
+class OrderEngine:
+    def __init__(self, broker_adapter, logger):
+        self.broker_adapter = broker_adapter
+        self.logger = logger
+    
+    def place_order(self, order_data):
+        # Process order
+        self.logger.info(f"Placing order: {order_data}")
+        result = self.broker_adapter.place_order(order_data)
+        return result
+
+# Factory for creating instances
+def create_order_engine():
+    from app.core.adapters.alpaca_adapter import AlpacaAdapter
+    from app.utils.logging_bus import LoggingBus
+    
+    return OrderEngine(
+        broker_adapter=AlpacaAdapter(),
+        logger=LoggingBus()
+    )
+```
+
+### ⚠️ Advanced Error Handling
+```python
+# Custom exception classes
+class WebhookError(Exception):
+    """Base class for webhook related errors."""
+    pass
+
+class InvalidJsonError(WebhookError):
+    """Raised when webhook JSON is invalid."""
+    pass
+
+class BrokerConnectionError(WebhookError):
+    """Raised when connection to broker fails."""
+    pass
+
+# Exception handler
+@app.errorhandler(WebhookError)
+def handle_webhook_error(error):
+    """Handle webhook-related errors."""
+    if isinstance(error, InvalidJsonError):
+        return jsonify({
+            'error': {
+                'code': 'INVALID_JSON',
+                'message': str(error)
+            }
+        }), 400
+    elif isinstance(error, BrokerConnectionError):
+        return jsonify({
+            'error': {
+                'code': 'BROKER_CONNECTION_ERROR',
+                'message': 'Failed to connect to broker'
+            }
+        }), 503
+    else:
+        return jsonify({
+            'error': {
+                'code': 'WEBHOOK_ERROR',
+                'message': str(error)
+            }
+        }), 500
+```
+
+## 🖥️ Desktop Commander MCP Usage
+
+### Overview
+Desktop Commander MCP is the standard tool for file operations and command execution in the Viewzenix platform. It provides robust error handling, secure file access, and reliable command execution capabilities. **Always use Desktop Commander MCP instead of built-in command tools.**
+
+### File Operations
+
+```typescript
+// ✅ GOOD: Reading files with Desktop Commander MCP
+async function readConfigFile() {
+  const filePath = '/path/to/config.json';
+  const content = await mcp_desktop-commander_read_file({ path: filePath });
+  return JSON.parse(content);
+}
+
+// ✅ GOOD: Writing files with Desktop Commander MCP
+async function saveConfigFile(config) {
+  const filePath = '/path/to/config.json';
+  await mcp_desktop-commander_write_file({ 
+    path: filePath, 
+    content: JSON.stringify(config, null, 2) 
+  });
+}
+
+// ✅ GOOD: Listing directory contents
+async function listProjectFiles() {
+  const directoryPath = '/path/to/project';
+  const files = await mcp_desktop-commander_list_directory({ path: directoryPath });
+  return files;
+}
+
+// ❌ BAD: Using built-in command tool for file operations
+// Don't use run_terminal_cmd for file operations
+const configContent = run_terminal_cmd({ command: 'cat /path/to/config.json' });
+```
+
+### Command Execution
+
+```typescript
+// ✅ GOOD: Executing commands with Desktop Commander MCP
+async function buildProject() {
+  const result = await mcp_desktop-commander_execute_command({ 
+    command: 'npm run build',
+    timeout_ms: 60000 // 1 minute timeout
+  });
+  return result;
+}
+
+// ✅ GOOD: Handling long-running commands
+async function startDevServer() {
+  // Start the server (will continue running in background after timeout)
+  const { pid } = await mcp_desktop-commander_execute_command({ 
+    command: 'npm run dev',
+    timeout_ms: 10000 // Initial 10 second timeout to capture startup
+  });
+  
+  // Later, read new output from the running process
+  const newOutput = await mcp_desktop-commander_read_output({ pid });
+  
+  // When needed, terminate the process
+  await mcp_desktop-commander_force_terminate({ pid });
+}
+
+// ✅ GOOD: Managing processes
+async function cleanupProcesses() {
+  // List all processes
+  const processes = await mcp_desktop-commander_list_processes({ random_string: '' });
+  
+  // Find and terminate specific processes
+  for (const process of processes) {
+    if (process.command.includes('npm run dev')) {
+      await mcp_desktop-commander_kill_process({ pid: process.pid });
+    }
+  }
+}
+
+// ❌ BAD: Using built-in command tools
+// Don't use run_terminal_cmd for command execution
+run_terminal_cmd({ command: 'npm run build', is_background: false });
+```
+
+### Code Editing
+
+```typescript
+// ✅ GOOD: Small changes with edit_block (< 20% of file)
+async function updateLogLevel() {
+  await mcp_desktop-commander_edit_block({
+    file_path: '/path/to/config.js',
+    old_string: `const logLevel = 'info';`,
+    new_string: `const logLevel = 'debug';`
+  });
+}
+
+// ✅ GOOD: Large changes with write_file (> 20% of file)
+async function completelyRewriteFile() {
+  const newContent = generateNewFileContent();
+  await mcp_desktop-commander_write_file({
+    path: '/path/to/file.js',
+    content: newContent
+  });
+}
+
+// ❌ BAD: Using built-in command tools for file editing
+// Don't use run_terminal_cmd for file editing
+run_terminal_cmd({ command: `echo "new content" > /path/to/file.txt` });
+```
+
+### Security Considerations
+
+1. **Always use absolute paths** for reliability across different environments
+2. **Be specific with search patterns** when using search functions
+3. **Avoid executing untrusted or user-provided commands**
+4. **Use timeout limits** appropriate for the expected command duration
+5. **Manage process lifecycle** by properly terminating long-running processes when done
+
+## 📚 Documentation Best Practices
+- Write self-documenting code where possible
+- Include docstrings for all public functions, classes, and methods
+- Comment complex logic or algorithms
+- Maintain API documentation in @docs/API.md
+- Document architectural decisions in @docs/ARCHITECTURE.md
+
+## ⚡ Performance Optimization
+- Minimize DOM manipulation in React components
+- Use pagination or virtualization for large lists
+- Optimize database queries to avoid N+1 problems
+- Use appropriate caching strategies
+- Consider the impact of network latency on user experience
+
+## ♿ Accessibility Guidelines
+- Use semantic HTML elements
+- Include proper ARIA attributes where needed
+- Ensure keyboard navigation support
+- Maintain appropriate color contrast ratios
+- Test with screen readers
+
+## 🔄 Process Standards
+- Pull requests must include detailed descriptions of changes
+- Issues must include clear reproduction steps and expected behavior
+- Release notes should categorize changes as features, fixes, or improvements
+- Code reviews should evaluate functionality, code quality, testing, performance, and security
+
+## ✅ Verification Steps
+When implementing advanced features, verify:
+
+1. The implementation follows the prescribed patterns
+2. Optimization techniques are appropriately applied
+3. Performance metrics are measured before and after
+4. The complexity is justified by the requirements
+5. The implementation is well-documented
+
+## 🔗 Related Rules
+[02-coding-standards.mdc](mdc:.cursor/rules/02-coding-standards.mdc)
+[06-frontend-rules.mdc](mdc:.cursor/rules/06-frontend-rules.mdc)
+[07-backend-rules.mdc](mdc:.cursor/rules/07-backend-rules.mdc)
+[08-integration-patterns.mdc](mdc:.cursor/rules/08-integration-patterns.mdc)

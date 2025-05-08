@@ -1,0 +1,198 @@
+---
+description: Follow standardized development, testing, and deployment processes to ensure quality and consistency
+globs: ["**/*"]
+alwaysApply: true
+---
+# Workflow Processes
+
+## 🔍 Overview
+This rule defines standardized workflows for development, testing, and deployment processes across the Viewzenix project to ensure consistency, quality, and efficiency.
+
+## 🔄 Development Workflow
+
+### Feature Development Process
+
+```mermaid
+graph TD
+    A[Review User Story] --> B[Plan Implementation]
+    B --> C[Create Feature Branch]
+    C --> D[Implement Feature]
+    D --> E[Write Tests]
+    E --> F[Run Local Tests]
+    F -- Tests Pass --> G[Create Pull Request]
+    F -- Tests Fail --> D
+    G --> H[Code Review]
+    H -- Approved --> I[Merge to Main]
+    H -- Changes Requested --> D
+```
+
+### Branch Naming Convention
+
+- Feature branches: `feature/short-description`
+- Bug fixes: `fix/issue-description`
+- Hotfixes: `hotfix/critical-issue`
+- Release branches: `release/v1.2.3`
+
+### Commit Message Format
+
+```
+type(scope): concise description
+
+[optional body with more details]
+
+[optional footer with issue references]
+```
+
+- **Type**: feat, fix, docs, style, refactor, test, chore
+- **Scope**: area affected (e.g., frontend, backend, api)
+- **Description**: Present tense, no period at end
+- **Body**: Why this change was made, not how
+- **Footer**: References to issues, e.g., "Fixes #123"
+
+#### Examples
+
+✅ GOOD:
+```
+feat(webhook): add support for conditional orders
+
+Implement webhook parameter parsing for conditional order types.
+This allows for more complex trading strategies using if/then logic.
+
+Resolves #45
+```
+
+❌ BAD:
+```
+fixed stuff
+```
+
+### Development Tooling
+
+When executing commands or working with files, always use Desktop Commander MCP instead of built-in command tools:
+
+✅ GOOD:
+```typescript
+// Reading files
+const fileContent = await mcp_desktop-commander_read_file({ path: '/path/to/file.txt' });
+
+// Executing commands
+const result = await mcp_desktop-commander_execute_command({ command: 'npm run build' });
+```
+
+❌ BAD:
+```typescript
+// Don't use run_terminal_cmd
+const fileContent = run_terminal_cmd({ command: 'cat /path/to/file.txt' });
+const result = run_terminal_cmd({ command: 'npm run build' });
+```
+
+Desktop Commander MCP provides better error handling, security controls, and process management capabilities. See [09-advanced-development-guidelines.mdc](mdc:.cursor/rules/09-advanced-development-guidelines.mdc) for detailed usage guidelines.
+
+## 🧪 Testing Process
+
+### Frontend Testing
+
+1. **Unit Testing**
+   - Test individual components in isolation
+   - Use React Testing Library for component tests
+   - Mock external dependencies and API calls
+
+2. **Integration Testing**
+   - Test component interactions
+   - Verify state management works correctly
+   - Test form submissions and user flows
+
+3. **E2E Testing**
+   - Use Playwright for critical user journeys
+   - Verify end-to-end functionality
+   - Test across supported browsers
+
+### Backend Testing
+
+1. **Unit Testing**
+   - Test individual functions and classes
+   - Use pytest for all tests
+   - Mock external dependencies
+
+2. **Integration Testing**
+   - Test API endpoints with test client
+   - Verify database interactions
+   - Test service integrations
+
+3. **Load Testing**
+   - Test performance under expected load
+   - Identify bottlenecks
+   - Verify scalability of critical endpoints
+
+### Test-Driven Development (TDD)
+
+When applicable, follow the TDD approach:
+
+1. Write a failing test that defines the expected behavior
+2. Implement the minimal code to make the test pass
+3. Refactor the code while keeping the tests passing
+
+## 🚀 Deployment Process
+
+### Environments
+
+| Environment | Purpose | Trigger | Branch |
+|-------------|---------|---------|--------|
+| Development | Internal testing | Manual | Any |
+| Staging | Pre-release verification | Automatic | main |
+| Production | Live environment | Manual | release/* |
+
+### Deployment Steps
+
+1. **Build Process**
+   - Lint code
+   - Run tests
+   - Build production assets
+
+2. **Deployment**
+   - Use GitHub Actions for CI/CD
+   - Deploy to Fly.io
+   - Run post-deployment verification
+
+3. **Monitoring**
+   - Verify application health
+   - Check for errors in logs
+   - Monitor performance metrics
+
+## 📋 Code Review Guidelines
+
+### Review Checklist
+
+- [ ] Code follows project coding standards
+- [ ] Appropriate tests are included
+- [ ] No unnecessary code changes
+- [ ] Documentation is updated
+- [ ] Error handling is implemented
+- [ ] Security considerations addressed
+- [ ] Performance impact considered
+
+### Review Process
+
+1. **Submit PR**: Developer creates PR with descriptive title and details
+2. **Automated Checks**: CI runs tests and checks
+3. **Manual Review**: Reviewer examines code changes
+4. **Feedback**: Reviewer provides specific actionable feedback
+5. **Resolution**: Developer addresses feedback
+6. **Approval**: Reviewer approves when satisfied
+7. **Merge**: PR is merged to target branch
+
+## ✅ Verification Steps
+
+Before submitting work, verify:
+
+1. All code follows the defined coding standards
+2. Tests are written and passing
+3. Commits follow the proper format
+4. Documentation is updated
+5. PR description is complete and references relevant issues
+6. CI checks are passing
+
+## 🔗 Related Rules
+[01-directory-structure.mdc](mdc:.cursor/rules/01-directory-structure.mdc)
+[02-coding-standards.mdc](mdc:.cursor/rules/02-coding-standards.mdc)
+[04-technical-requirements.mdc](mdc:.cursor/rules/04-technical-requirements.mdc)

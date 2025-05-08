@@ -1,0 +1,145 @@
+---
+description: Organize files and folders following standard layout to ensure consistent project organization
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Directory Structure
+
+## 🔍 Overview
+This rule defines the standardized directory structure for the Viewzenix trading webhook platform, ensuring consistent organization and clear separation of concerns between teams.
+
+## 🧑‍💻 Agent Responsibilities
+
+Each agent has specific ownership of directories to prevent overlapping work:
+
+| Agent | Primary Directory | Core Responsibilities |
+|-------|------------------|----------------------|
+| Designer/Frontend | `frontend/` | User interface, client-side logic |
+| Backend | `backend/` | Server-side logic, APIs, data processing |
+
+While agents primarily own their designated directories, they share responsibility for common directories like `docs/` and `.project/`.
+
+## 📁 Project Structure
+
+### Root Directory
+
+```
+Viewzenix/
+├── .cursor/                # Cursor IDE configuration 
+│   └── rules/              # Project-specific rules for Cursor AI
+├── .github/                # GitHub specific files
+│   ├── workflows/          # CI/CD pipeline configurations
+│   └── ISSUE_TEMPLATE/     # Templates for GitHub issues
+├── .project/               # Project management and documentation
+│   ├── docs/               # Project documentation
+│   ├── kanban/             # Task tracking system
+│   ├── stories/            # User stories
+│   └── tasks/              # Implementation tasks
+├── frontend/               # React frontend application
+├── backend/                # Flask backend application
+├── tests/                  # Project-wide tests
+├── scripts/                # Utility scripts for the project
+└── [config files]          # Various configuration files
+```
+
+### Frontend Structure
+
+```
+frontend/
+├── public/                 # Static files
+├── src/                    # Source code
+│   ├── components/         # Reusable UI components
+│   │   ├── common/         # Shared components
+│   │   ├── webhook/        # Webhook setup components
+│   │   ├── brokers/        # Broker configuration components
+│   │   ├── bots/           # Bot configuration components
+│   │   ├── logs/           # Log display components
+│   │   └── analytics/      # Analytics components
+│   ├── pages/              # Page components
+│   ├── hooks/              # Custom React hooks
+│   ├── services/           # API services
+│   ├── utils/              # Utility functions
+│   ├── styles/             # Global styles and themes
+│   ├── store/              # State management
+│   ├── types/              # TypeScript type definitions
+│   ├── constants/          # Constants and configuration
+│   ├── App.tsx             # Main App component
+│   └── index.tsx           # Entry point
+└── [config files]          # Frontend configuration files
+```
+
+### Backend Structure
+
+```
+backend/
+├── app/                    # Application code
+│   ├── api/                # API endpoints
+│   │   ├── routes/         # Route definitions
+│   │   └── middlewares/    # API middlewares
+│   ├── core/               # Core business logic
+│   │   ├── services/       # Business services
+│   │   ├── adapters/       # Broker adapters
+│   │   └── models/         # Data models
+│   ├── utils/              # Utility functions
+│   ├── config/             # Configuration
+│   └── __init__.py         # Package initialization
+├── logs/                   # Application logs directory
+├── tests/                  # Test files
+│   ├── unit/               # Unit tests
+│   ├── integration/        # Integration tests
+│   └── conftest.py         # Test configuration
+└── [config files]          # Backend configuration files
+```
+
+### Project Management Structure
+
+```
+.project/
+├── docs/                   # Project documentation
+│   ├── architecture/       # Architecture diagrams and specifications
+│   ├── specifications/     # API and component specifications
+│   └── workflow-guide.md   # Combined development workflow guide
+├── kanban/                 # Task tracking system
+│   ├── board.md            # Active Kanban board
+│   ├── archive/            # Historical sprint boards
+│   └── templates/          # Templates for project artifacts
+│       ├── task.md         # Task template
+│       └── user-story.md   # User story template
+├── stories/                # User stories organized by domain
+│   ├── backend/            # Backend-related user stories
+│   └── frontend/           # Frontend-related user stories
+├── tasks/                  # Implementation tasks
+│   ├── backend/            # Backend-specific tasks
+│   └── frontend/           # Frontend-specific tasks
+└── roadmap.md              # Project roadmap and timeline
+```
+
+## 📝 Naming Conventions
+
+### Frontend
+- **Components**: PascalCase (e.g., `OrderCard.tsx`)
+- **Hooks**: camelCase with "use" prefix (e.g., `useOrderStatus.ts`)
+- **Utilities**: camelCase (e.g., `formatCurrency.ts`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `API_ENDPOINTS.ts`)
+- **Styles**: component name + `.module.css` (e.g., `OrderCard.module.css`)
+
+### Backend
+- **Python modules**: snake_case (e.g., `trade_classifier.py`)
+- **Classes**: PascalCase (e.g., `AlpacaAdapter`)
+- **Functions**: snake_case (e.g., `get_asset_class`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `DEFAULT_ORDER_PCT`)
+
+## ✅ Verification Steps
+
+When creating new files, verify that:
+
+1. The file is placed in the correct directory according to its purpose
+2. The file follows the naming conventions for its type
+3. The file structure follows the patterns established in similar files
+4. Any new directories follow the established organizational hierarchy
+
+## 🔗 Related Rules
+[02-coding-standards.mdc](mdc:.cursor/rules/02-coding-standards.mdc)
+[03-workflow-processes.mdc](mdc:.cursor/rules/03-workflow-processes.mdc)
+[04-technical-requirements.mdc](mdc:.cursor/rules/04-technical-requirements.mdc)

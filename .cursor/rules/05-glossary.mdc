@@ -1,0 +1,90 @@
+---
+description: Use consistent terminology when writing code and documentation to ensure clear communication
+globs: 
+alwaysApply: false
+---
+
+# Glossary
+
+## 🔍 Overview
+This rule defines the standardized terminology used throughout the Viewzenix trading webhook platform to ensure consistent communication and understanding across teams.
+
+## 📚 Core Terms
+
+| Term | Definition | Usage Context |
+|------|------------|---------------|
+| Webhook | An HTTP callback that delivers data to other applications in real-time | "The TradingView webhook sends alert data to our API" |
+| Alert | A notification triggered by predefined conditions in TradingView | "The alert contains information about the trading signal" |
+| Order | An instruction to buy or sell a financial instrument | "The system places an order based on the webhook data" |
+| Broker | A financial institution that executes trading orders | "Alpaca is the primary broker integrated with our platform" |
+| Bot | An automated trading strategy configuration | "Users can configure multiple bots with different parameters" |
+
+## 🏛️ Order Types
+
+| Term | Definition | Example |
+|------|------------|---------|
+| Market Order | Order to buy/sell immediately at the best available price | `"order_type": "MARKET"` |
+| Limit Order | Order to buy/sell at a specified price or better | `"order_type": "LIMIT", "price": 150.25` |
+| Stop Order | Order to buy/sell when the price reaches a specified stop price | `"order_type": "STOP", "stop_price": 145.00` |
+| Stop-Limit Order | Combination of stop and limit order | `"order_type": "STOP_LIMIT", "stop_price": 145.00, "limit_price": 144.50` |
+
+## 🛡️ Risk Management Terms
+
+| Term | Definition | Implementation Detail |
+|------|------------|----------------------|
+| Stop-Loss (SL) | Order to sell when the price falls to a certain level, limiting losses | Implemented as a STOP or STOP_LIMIT order |
+| Take-Profit (TP) | Order to sell when the price rises to a certain level, securing gains | Implemented as a LIMIT order |
+| Global SL/TP | Account-wide stop-loss or take-profit setting | Applied to all positions regardless of individual settings |
+| Trailing Stop | A stop-loss that adjusts as the market price changes | Moves with the price, maintaining a fixed distance |
+
+## 🧠 Trading Logic Terms
+
+| Term | Definition | System Component |
+|------|------------|-----------------|
+| Trade Classifier | Component that identifies asset class and trading permissions | Backend service in `core/services/trade_classifier.py` |
+| Order Engine | Core component that processes and executes trading orders | Backend service in `core/services/order_engine.py` |
+| Cleanup Service | System that manages orphaned or outdated orders | Background service in `core/services/cleanup_service.py` |
+| Dual-Mode Limit Order | Special limit order type that can work as entry or exit | Custom implementation in the order engine |
+
+## 🖥️ UI Component Terms
+
+| Term | Definition | Frontend Location |
+|------|------------|------------------|
+| Webhook Setup Tab | Interface for configuring TradingView webhooks | `src/pages/WebhookSetup.tsx` |
+| Broker Manager | Interface for connecting and managing broker accounts | `src/pages/Brokers.tsx` |
+| Bot Configuration | Interface for setting up automated trading strategies | `src/pages/Bots.tsx` |
+| Log Viewer | Component for viewing system activity and trade logs | `src/pages/Logs.tsx` |
+| Performance Dashboard | Analytics interface for viewing trading results | `src/pages/Analytics.tsx` |
+
+## 🧪 Testing Terms
+
+| Term | Definition | Usage |
+|------|------------|-------|
+| Unit Test | Test for individual functions or components | Verify isolated behavior of components |
+| Integration Test | Test for interactions between components | Verify system parts work together |
+| E2E Test | Test for complete user workflows | Verify complete system functionality |
+| Test Fixture | Predefined test data or environment | Create consistent test conditions |
+| Mock | Simulated object that mimics real object behavior | Replace external dependencies in tests |
+
+## ⚙️ Technical Terms
+
+| Term | Definition | Technology Choice |
+|------|------------|------------------|
+| API | Application Programming Interface | RESTful API using Flask |
+| WebSocket | Protocol for two-way communication | Used for real-time updates |
+| OAuth | Authentication protocol | Used for broker authentication |
+| JWT | JSON Web Token | Used for API authentication |
+| CI/CD | Continuous Integration/Continuous Deployment | Implemented with GitHub Actions |
+
+## ✅ Usage Guidelines
+
+When writing code, documentation, or communicating about the project:
+
+1. Use the exact terms as defined in this glossary
+2. Maintain consistent capitalization and hyphenation
+3. If you need a term not listed here, propose it for addition
+4. Include brief explanations when using specialized terms in user-facing content
+
+## 🔗 Related Rules
+[01-directory-structure.mdc](mdc:.cursor/rules/01-directory-structure.mdc)
+[04-technical-requirements.mdc](mdc:.cursor/rules/04-technical-requirements.mdc)

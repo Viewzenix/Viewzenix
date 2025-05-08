@@ -1,0 +1,607 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Backend Development Rules
+
+## 🔍 Overview
+This rule defines specific guidelines and best practices for backend development in the Viewzenix platform, focusing on Python, Flask, and API design.
+
+## 🏗️ Component Architecture
+
+### Module Organization
+
+```
+app/
+├── api/                    # API endpoints
+│   ├── routes/             # Route definitions
+│   │   ├── webhook.py      # Webhook receiver endpoint
+│   │   └── ...
+│   └── middlewares/        # API middlewares
+│       └── validation.py   # JSON schema validation
+├── core/                   # Core business logic
+│   ├── services/           # Business services
+│   ├── adapters/           # External system adapters
+│   └── models/             # Data models
+├── utils/                  # Utility functions
+├── config/                 # Configuration
+└── __init__.py             # Application factory
+```
+
+### Flask Blueprint Structure
+
+```python
+# ✅ GOOD: Well-structured Flask blueprint
+from flask import Blueprint, request, jsonify
+from app.core.services.order_engine import OrderEngine
+from app.utils.logging_bus import LoggingBus
+from app.api.middlewares.validation import validate_schema
+
+# Create blueprint
+webhook_bp = Blueprint('webhook', __name__, url_prefix='/api/webhook')
+logger = LoggingBus(__name__)
+order_engine = OrderEngine()
+
+# Webhook schema for validation
+WEBHOOK_SCHEMA = {
+    "type": "object",
+    "required": ["passphrase", "ticker", "action"],
+    "properties": {
+        "passphrase": {"type": "string"},
+        "ticker": {"type": "string"},
+        "action": {"type": "string", "enum": ["BUY", "SELL"]},
+        "quantity": {"type": "number"},
+        "price": {"type": "number"},
+        "order_type": {"type": "string", "enum": ["MARKET", "LIMIT"]}
+    }
+}
+
+@webhook_bp.route('', methods=['POST'])
+@validate_schema(WEBHOOK_SCHEMA)
+def receive_webhook():
+    """
+    Receive and process a webhook from TradingView.
+    
+    Returns:
+        JSON response with order status and ID
+    """
+    try:
+        # Log incoming webhook (sanitized)
+        payload = request.get_json()
+        logger.info(f"Received webhook for {payload.get('ticker')}", 
+                   extra={"action": payload.get("action")})
+        
+        # Process webhook with order engine
+        result = order_engine.process_webhook(payload)
+        
+        # Return success response
+        return jsonify({
+            "status": "success",
+            "order_id": result.get("order_id"),
+            "message": "Order processed successfully"
+        }), 200
+        
+    except ValidationError as e:
+        logger.warning(f"Webhook validation error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "code": "VALIDATION_ERROR",
+            "message": str(e)
+        }), 400
+        
+    except Exception as e:
+        logger.error(f"Error processing webhook: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "code": "SERVER_ERROR",
+            "message": "An unexpected error occurred"
+        }), 500
+
+# Register blueprint in app/__init__.py
+# from app.api.routes.webhook import webhook_bp
+# app.register_blueprint(webhook_bp)
+```
+
+## 🧩 Service Pattern
+
+### Service Class Structure
+
+```python
+# ✅ GOOD: Well-structured service class
+from typing import Dict, List, Optional
+from app.core.models.order import Order
+from app.core.adapters.broker_adapter import BrokerAdapter
+from app.utils.logging_bus import LoggingBus
+
+class OrderEngine:
+    """
+    Core service for processing and executing trading orders.
+    
+    Responsibilities:
+    - Process webhook payloads into standardized order objects
+    - Apply trading logic and rules
+    - Execute orders through broker adapters
+    - Track order status and history
+    """
+    
+    def __init__(self, broker_adapter: BrokerAdapter):
+        """Initialize the order engine with dependencies."""
+        self.broker_adapter = broker_adapter
+        self.logger = LoggingBus(__name__)
+    
+    def process_webhook(self, payload: Dict[str, any]) -> Dict[str, any]:
+        """
+        Process a webhook payload into an order.
+        
+        Args:
+            payload: The webhook payload from TradingView
+            
+        Returns:
+            Dict containing order details and status
+            
+        Raises:
+            ValidationError: If payload is invalid
+            BrokerError: If broker interaction fails
+        """
+        # Validate webhook passphrase
+        self._validate_passphrase(payload.get("passphrase"))
+        
+        # Convert webhook to standardized order
+        order = self._create_order_from_payload(payload)
+        
+        # Apply any additional business rules
+        self._apply_trading_rules(order)
+        
+        # Submit order to broker
+        order_id = self.broker_adapter.submit_order(order)
+        
+        # Log the order placement
+        self.logger.info(
+            f"Placed {order.action} order for {order.quantity} {order.ticker}",
+            extra={
+                "order_id": order_id,
+                "ticker": order.ticker,
+                "action": order.action,
+                "quantity": order.quantity
+            }
+        )
+        
+        # Return result
+        return {
+            "order_id": order_id,
+            "status": "submitted",
+            "details": order.to_dict()
+        }
+    
+    def _validate_passphrase(self, passphrase: str) -> None:
+        """Validate the webhook passphrase."""
+        # Implementation...
+        
+    def _create_order_from_payload(self, payload: Dict[str, any]) -> Order:
+        """Convert webhook payload to Order object."""
+        # Implementation...
+        
+    def _apply_trading_rules(self, order: Order) -> None:
+        """Apply business rules to the order."""
+        # Implementation...
+```
+
+## 🔄 Data Validation
+
+### Schema Validation
+
+```python
+# ✅ GOOD: JSON schema validation middleware
+import jsonschema
+from flask import request, jsonify
+from functools import wraps
+
+class ValidationError(Exception):
+    """Exception raised for validation errors."""
+    pass
+
+def validate_schema(schema):
+    """
+    Validate request JSON against the provided schema.
+    
+    Args:
+        schema: JSON schema to validate against
+        
+    Returns:
+        Decorated function
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Get request JSON
+            request_json = request.get_json()
+            if not request_json:
+                return jsonify({
+                    "status": "error",
+                    "code": "INVALID_JSON",
+                    "message": "Missing or invalid JSON payload"
+                }), 400
+            
+            # Validate against schema
+            try:
+                jsonschema.validate(instance=request_json, schema=schema)
+            except jsonschema.exceptions.ValidationError as e:
+                error_path = ".".join(str(p) for p in e.path)
+                error_message = f"Invalid data at {error_path}: {e.message}"
+                return jsonify({
+                    "status": "error",
+                    "code": "SCHEMA_VALIDATION_ERROR",
+                    "message": error_message,
+                    "details": {
+                        "path": error_path,
+                        "error": e.message
+                    }
+                }), 400
+                
+            # Continue to the route handler
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+```
+
+### Input Sanitization
+
+```python
+# ✅ GOOD: Input sanitization
+def sanitize_input(data):
+    """
+    Sanitize input data to prevent injection attacks.
+    
+    Args:
+        data: Input data to sanitize
+        
+    Returns:
+        Sanitized data
+    """
+    if isinstance(data, str):
+        # Remove potential script tags
+        sanitized = re.sub(r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>', '', data)
+        # Remove other potentially harmful HTML
+        sanitized = re.sub(r'<[^>]*>', '', sanitized)
+        return sanitized
+    elif isinstance(data, dict):
+        return {k: sanitize_input(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_input(i) for i in data]
+    else:
+        return data
+```
+
+## 📊 Logging Best Practices
+
+### Structured Logging
+
+```python
+# ✅ GOOD: Structured logging
+import logging
+import json
+import time
+from flask import request, g
+
+class LoggingBus:
+    """
+    Dual-format logging system that outputs both:
+    1. Human-readable logs to activity.log
+    2. Machine-readable JSON logs to logs.jsonl
+    """
+    
+    def __init__(self, name):
+        # Setup human-readable logger
+        self.text_logger = logging.getLogger(f"{name}.text")
+        
+        # Setup JSON logger
+        self.json_logger = logging.getLogger(f"{name}.json")
+    
+    def info(self, message, extra=None):
+        """Log an info message to both log formats."""
+        self._log(logging.INFO, message, extra)
+    
+    def warning(self, message, extra=None):
+        """Log a warning message to both log formats."""
+        self._log(logging.WARNING, message, extra)
+    
+    def error(self, message, extra=None, exc_info=False):
+        """Log an error message to both log formats."""
+        self._log(logging.ERROR, message, extra, exc_info)
+    
+    def _log(self, level, message, extra=None, exc_info=False):
+        """Internal method to log to both formats."""
+        # Get request ID if available
+        request_id = getattr(g, 'request_id', 'no-request-id')
+        
+        # Prepare extra data
+        log_extra = {
+            'timestamp': time.time(),
+            'request_id': request_id
+        }
+        
+        if extra:
+            log_extra.update(extra)
+        
+        # Log human-readable message
+        self.text_logger.log(level, message, exc_info=exc_info)
+        
+        # Log JSON message
+        json_message = {
+            'message': message,
+            'level': logging.getLevelName(level),
+            **log_extra
+        }
+        self.json_logger.log(
+            level, 
+            json.dumps(json_message),
+            exc_info=exc_info
+        )
+```
+
+## 🔐 Security Practices
+
+### Authentication Middleware
+
+```python
+# ✅ GOOD: API key authentication middleware
+from flask import request, jsonify
+from functools import wraps
+from app.utils.logging_bus import LoggingBus
+
+logger = LoggingBus(__name__)
+
+def require_api_key(f):
+    """
+    Middleware to require and validate API key in request headers.
+    
+    Usage:
+        @app.route('/protected')
+        @require_api_key
+        def protected_route():
+            return "Protected content"
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        
+        if not api_key:
+            logger.warning("API request missing API key")
+            return jsonify({
+                "status": "error",
+                "code": "UNAUTHORIZED",
+                "message": "API key is required"
+            }), 401
+        
+        # Validate API key (implementation would vary)
+        valid = validate_api_key(api_key)
+        
+        if not valid:
+            logger.warning("Invalid API key used", 
+                          extra={"masked_key": api_key[:4] + "..." if api_key else "none"})
+            return jsonify({
+                "status": "error",
+                "code": "UNAUTHORIZED",
+                "message": "Invalid API key"
+            }), 401
+        
+        # Continue to the route handler
+        return f(*args, **kwargs)
+    return decorated_function
+```
+
+## 🧪 Testing Patterns
+
+### Pytest Fixtures
+
+```python
+# ✅ GOOD: Pytest fixtures
+import pytest
+from app import create_app
+from app.core.adapters.broker_adapter import BrokerAdapter
+from unittest.mock import Mock
+
+@pytest.fixture
+def app():
+    """Create and configure a Flask app for testing."""
+    app = create_app({
+        'TESTING': True,
+        'DATABASE': ':memory:',
+        'SERVER_NAME': 'test.local',
+    })
+    
+    # Create context
+    with app.app_context():
+        # Initialize database
+        init_db()
+        yield app
+
+@pytest.fixture
+def client(app):
+    """A test client for the app."""
+    return app.test_client()
+
+@pytest.fixture
+def mock_broker():
+    """Mock broker adapter for testing."""
+    mock = Mock(spec=BrokerAdapter)
+    mock.submit_order.return_value = "mocked-order-id"
+    return mock
+
+@pytest.fixture
+def sample_webhook_payload():
+    """Sample webhook payload for testing."""
+    return {
+        "passphrase": "test-passphrase",
+        "ticker": "AAPL",
+        "action": "BUY",
+        "quantity": 10,
+        "price": 150.50,
+        "order_type": "MARKET"
+    }
+```
+
+### API Tests
+
+```python
+# ✅ GOOD: API test
+def test_webhook_endpoint(client, sample_webhook_payload, mock_broker, monkeypatch):
+    """Test the webhook endpoint with valid payload."""
+    # Patch the broker adapter
+    monkeypatch.setattr('app.core.services.order_engine.BrokerAdapter', 
+                        lambda: mock_broker)
+    
+    # Send request to the endpoint
+    response = client.post(
+        '/api/webhook',
+        json=sample_webhook_payload,
+        headers={'Content-Type': 'application/json'}
+    )
+    
+    # Assert response
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['status'] == 'success'
+    assert 'order_id' in data
+    
+    # Verify broker adapter was called correctly
+    mock_broker.submit_order.assert_called_once()
+    call_args = mock_broker.submit_order.call_args[0][0]
+    assert call_args.ticker == sample_webhook_payload['ticker']
+    assert call_args.action == sample_webhook_payload['action']
+```
+
+## 🔌 Supabase Integration
+
+### Database and Authentication
+
+```python
+# ✅ GOOD: Supabase client initialization
+from supabase import create_client, Client
+
+def get_supabase_client() -> Client:
+    """
+    Initialize and return a Supabase client.
+    
+    Returns:
+        Configured Supabase client
+    """
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    
+    if not url or not key:
+        raise EnvironmentError("Supabase credentials not found in environment")
+        
+    return create_client(url, key)
+
+# Usage example
+supabase = get_supabase_client()
+```
+
+### Database Operations
+
+```python
+# ✅ GOOD: Database operations with error handling
+async def store_webhook_data(webhook_data: dict) -> str:
+    """
+    Store webhook data in Supabase.
+    
+    Args:
+        webhook_data: Validated webhook payload
+        
+    Returns:
+        ID of inserted record
+    """
+    try:
+        response = supabase.table('webhook_payloads').insert(webhook_data).execute()
+        
+        if response.error:
+            raise DatabaseError(f"Failed to store webhook data: {response.error.message}")
+            
+        return response.data[0]['id']
+        
+    except Exception as e:
+        logger.error(f"Supabase operation failed: {str(e)}")
+        raise
+```
+
+### Serverless Functions
+
+When implementing edge functions for webhook processing:
+
+```typescript
+// webhook.ts - Supabase Edge Function
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+Deno.serve(async (req: Request) => {
+  try {
+    const payload = await req.json();
+    
+    // Validate payload
+    if (!payload.passphrase || !payload.ticker || !payload.action) {
+      throw new Error("Invalid webhook payload");
+    }
+    
+    // Process webhook logic
+    const result = {
+      status: "success",
+      message: "Webhook processed"
+    };
+    
+    return new Response(JSON.stringify(result), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        status: "error", 
+        message: error.message 
+      }),
+      { 
+        status: 400, 
+        headers: { "Content-Type": "application/json" } 
+      }
+    );
+  }
+});
+```
+
+### Database Schema Management
+
+Use Supabase migrations for database schema changes:
+
+```sql
+-- Create tables for webhook system
+CREATE TABLE public.webhook_configurations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  passphrase TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Set up row-level security
+ALTER TABLE public.webhook_configurations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own webhook configs"
+  ON public.webhook_configurations
+  FOR SELECT USING (auth.uid() = user_id);
+```
+
+## ✅ Verification Steps
+
+When developing backend components, verify:
+
+1. The component follows the established module organization and patterns
+2. Proper input validation and error handling are implemented
+3. Logging captures relevant information for debugging and auditing
+4. Security best practices are followed
+5. Performance considerations are addressed
+6. The code is covered by appropriate tests
+7. Documentation is complete and accurate
+
+## 🔗 Related Rules
+[01-directory-structure.mdc](mdc:.cursor/rules/01-directory-structure.mdc)
+[02-coding-standards.mdc](mdc:.cursor/rules/02-coding-standards.mdc)
+[04-technical-requirements.mdc](mdc:.cursor/rules/04-technical-requirements.mdc)
