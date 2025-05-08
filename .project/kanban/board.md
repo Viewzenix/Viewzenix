@@ -1,5 +1,5 @@
 # Project Kanban Board
-> Last updated: 2024-05-08
+> Last updated: 2024-05-10
 
 ## 📋 Backlog
 
@@ -13,26 +13,21 @@
 
 *Tasks ready to be worked on, prioritized and scheduled for the current sprint/cycle.*
 
-- [TASK-002: Define `/webhook` route in a Flask Blueprint](../tasks/backend/TASK-002.md) `api` `flask` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent
-
 ## ⏳ In Progress
 
 *Tasks currently being worked on by an agent.*
-
-- [US-001: Receive TradingView Webhook](../stories/backend/US-001.md) `webhook` `api` `security` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
-  - [TASK-001: Set up basic Flask application structure](../tasks/backend/TASK-001.md) `setup` `flask` `architecture` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent
 
 ## 🔎 Review
 
 *Tasks completed and awaiting review/testing.*
 
-<!-- No tasks in review yet -->
+- [US-001: Receive TradingView Webhook](../stories/backend/US-001.md) `webhook` `api` `security` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+  - [TASK-001: Set up basic Flask application structure](../tasks/backend/TASK-001.md) `setup` `flask` `architecture` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent
+  - [TASK-002: Define `/webhook` route in a Flask Blueprint](../tasks/backend/TASK-002.md) `api` `flask` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent
 
 ## ✅ Done (Last 7 days)
 
 *Recently completed tasks and user stories.*
-
-<!-- No completed tasks yet -->
 
 ## How to Use This Board
 
