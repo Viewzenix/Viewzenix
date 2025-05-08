@@ -1,0 +1,22 @@
+# Viewzenix Backend Requirements
+
+# Core dependencies
+Flask==2.2.3
+Werkzeug==2.2.3
+jsonschema==4.17.3
+python-dotenv==1.0.0
+alpaca-trade-api==3.0.0  # Alpaca API client
+pydantic==1.10.7  # Data validation
+
+# Testing
+pytest==7.3.1
+pytest-flask==1.2.0
+pytest-mock==3.10.0  # For mocking in tests
+
+# Development
+black==23.3.0
+flake8==6.0.0
+mypy==1.2.0
+
+# Production
+gunicorn==20.1.0

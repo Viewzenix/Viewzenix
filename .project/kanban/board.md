@@ -12,14 +12,9 @@
 
 *Tasks ready to be worked on, prioritized and scheduled for the current sprint/cycle.*
 
-- [TASK-002: Define `/webhook` route in a Flask Blueprint](../tasks/backend/TASK-002.md) `api` `flask` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent
-
 ## ⏳ In Progress
 
 *Tasks currently being worked on by an agent.*
-
-- [US-001: Receive TradingView Webhook](../stories/backend/US-001.md) `webhook` `api` `security` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
-  - [TASK-001: Set up basic Flask application structure](../tasks/backend/TASK-001.md) `setup` `flask` `architecture` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent
 
 ## 🔎 Review
 
@@ -32,7 +27,15 @@
 
 *Recently completed tasks and user stories.*
 
-<!-- No completed tasks yet -->
+- [US-001: Receive TradingView Webhook](../stories/backend/US-001.md) `webhook` `api` `security` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+  - [TASK-001: Set up basic Flask application structure](../tasks/backend/TASK-001.md) `setup` `flask` `architecture` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
+  - [TASK-002: Define `/webhook` route in a Flask Blueprint](../tasks/backend/TASK-002.md) `api` `flask` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
+
+- [US-002: Process Trading Orders](../stories/backend/US-002.md) `orders` `trading` `broker` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+  - [TASK-003: Implement Trade Router service](../tasks/backend/TASK-003.md) `core` `trading` `webhook` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
+  - [TASK-004: Implement Order Engine service](../tasks/backend/TASK-004.md) `core` `trading` `orders` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
+  - [TASK-005: Implement Broker Adapter interface and Alpaca implementation](../tasks/backend/TASK-005.md) `core` `trading` `broker` `alpaca` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
+  - [TASK-006: Enhance webhook endpoint to use order processing services](../tasks/backend/TASK-006.md) `api` `webhook` `integration` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-10)
 
 ## How to Use This Board
 
