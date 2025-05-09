@@ -10,6 +10,7 @@
 - TASK-111: Implement API Client in Frontend WebhookService
 - TASK-112: Add Database Migration Scripts
 - TASK-113: Create End-to-End Integration Tests
+- TASK-114: Migrate Backend to Supabase and Implement Webhook Signal Processing
 
 ## In Progress
 

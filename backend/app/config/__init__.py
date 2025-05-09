@@ -31,6 +31,11 @@ class Config:
     ALPACA_API_URL = os.environ.get('ALPACA_API_URL', 'https://paper-api.alpaca.markets')  # Default to paper trading
     
     # Order processing settings
+    POSITION_SIZE_VALUE = float(os.environ.get('POSITION_SIZE_VALUE', 1.0))  # Used differently based on method
+    
+    # Supabase settings
+    SUPABASE_URL = os.environ.get('SUPABASE_URL')
+    SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
     SIMULATION_MODE = os.environ.get('SIMULATION_MODE', 'True').lower() == 'true'  # Default to simulation mode for safety
     DEFAULT_ORDER_QUANTITY = int(os.environ.get('DEFAULT_ORDER_QUANTITY', 1))
     POSITION_SIZING_METHOD = os.environ.get('POSITION_SIZING_METHOD', 'fixed')  # fixed, percentage, risk
@@ -80,6 +85,8 @@ class ProductionConfig(Config):
         assert cls.WEBHOOK_PASSPHRASE, "WEBHOOK_PASSPHRASE environment variable must be set"
         assert cls.ALPACA_API_KEY, "ALPACA_API_KEY environment variable must be set"
         assert cls.ALPACA_API_SECRET, "ALPACA_API_SECRET environment variable must be set"
+        assert cls.SUPABASE_URL, "SUPABASE_URL environment variable must be set"
+        assert cls.SUPABASE_KEY, "SUPABASE_KEY environment variable must be set"
 
 
 # Map of environment names to configuration classes
