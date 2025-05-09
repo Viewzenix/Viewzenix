@@ -1,5 +1,5 @@
 import { supabase } from '@/config/supabase.config';
-import { Session, User, AuthError } from '@supabase/supabase-js';
+import { AuthError, Session, User } from '@supabase/supabase-js';
 
 /**
  * Authentication service for handling Supabase auth operations
@@ -176,4 +176,4 @@ class AuthService {
 }
 
 // Export as singleton
-export const authService = new AuthService(); 
+export const authService = new AuthService();
