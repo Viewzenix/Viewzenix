@@ -8,13 +8,8 @@ import {
   Flex,
   IconButton,
   Drawer,
-  DrawerContent,
-  DrawerOverlay,
-  useDisclosure,
-  VStack,
-  HStack,
+  Stack,
   Text,
-  useColorModeValue,
   Link as ChakraLink,
   CloseButton,
 } from '@chakra-ui/react';
@@ -36,7 +31,9 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const onOpen = () => setIsOpen(true);
+  const onClose = () => setIsOpen(false);
   const pathname = usePathname();
 
   return (
@@ -49,20 +46,20 @@ export function AppLayout({ children }: AppLayoutProps) {
         left="0"
         h="full"
         w={{ base: 0, md: 60 }}
-        bg={useColorModeValue('white', 'gray.800')}
+        bg="bg.surface"
         borderRight="1px"
-        borderRightColor={useColorModeValue('gray.200', 'gray.700')}
+        borderRightColor="border.default"
         display={{ base: 'none', md: 'block' }}
       >
         <SidebarContent />
       </Box>
       {/* Mobile drawer */}
-      <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
-        <DrawerOverlay />
-        <DrawerContent>
+      <Drawer.Root open={isOpen} onOpenChange={setIsOpen}>
+        <Drawer.Backdrop />
+        <Drawer.Content>
           <SidebarContent onClose={onClose} />
-        </DrawerContent>
-      </Drawer>
+        </Drawer.Content>
+      </Drawer.Root>
       {/* Mobile nav */}
       <MobileNav onOpen={onOpen} />
       {/* Main content */}
@@ -77,7 +74,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   return (
-    <VStack align="start" p="4" spacing="4">
+    <Stack direction="column" align="start" p="4" gap="4">
       <Text fontSize="2xl" fontWeight="bold">Viewzenix</Text>
       {LinkItems.map((item) => {
         const isActive = pathname === item.path;
@@ -90,8 +87,8 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             alignItems="center"
             p="2"
             borderRadius="md"
-            bg={isActive ? useColorModeValue('gray.200', 'gray.700') : 'transparent'}
-            _hover={{ bg: useColorModeValue('gray.100', 'gray.600') }}
+            bg={isActive ? "bg.subtle" : "transparent"}
+            _hover={{ bg: "bg.muted" }}
             w="full"
             onClick={onClose}
           >
@@ -100,7 +97,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           </ChakraLink>
         )
       })}
-    </VStack>
+    </Stack>
   );
 }
 
@@ -114,20 +111,21 @@ function MobileNav({ onOpen }: { onOpen: () => void }) {
       left="0"
       w="full"
       align="center"
-      bg={useColorModeValue('white', 'gray.800')}
+      bg="bg.surface"
       borderBottom="1px"
-      borderBottomColor={useColorModeValue('gray.200', 'gray.700')}
+      borderBottomColor="border.default"
       justify="space-between"
       px="4"
       h="14"
       display={{ base: 'flex', md: 'none' }}
     >
-      <IconButton
+      <IconButton 
         aria-label="Open menu"
-        icon={<FiMenu />}
         onClick={onOpen}
         variant="ghost"
-      />
+      >
+        <FiMenu />
+      </IconButton>
       <Text fontSize="lg" fontWeight="bold">Viewzenix</Text>
       <CloseButton display={{ base: 'none', md: 'block' }} onClick={onOpen} />
     </Flex>

@@ -39,7 +39,7 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
       setError(null);
       
       // Use the correct method name that exists in the service
-      const updatedWebhook = await webhookService.toggleWebhookStatus(webhook.id, !webhook.isActive);
+      const updatedWebhook = await webhookService.toggleWebhookActive(webhook.id, !webhook.isActive);
       
       // Use callback if provided, otherwise fallback to page reload
       if (onStatusChange) {

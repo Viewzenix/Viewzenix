@@ -5,7 +5,7 @@ This module defines the webhook_config blueprint with CRUD endpoints for
 managing webhook configurations.
 """
 from flask import Blueprint, request, jsonify, current_app, g
-from typing import Tuple
+from typing import Tuple, Any
 from datetime import datetime
 import uuid
 
@@ -85,10 +85,10 @@ def get_all_webhook_configs() -> Tuple[Any, int]:
     try:
         user_id = g.get('user_id')
         supabase = get_supabase_client()
-        response = supabase.table('webhook_configs')
-                         .select('*')
-                         .eq('user_id', user_id)
-                         .execute()
+        response = supabase.table('webhook_configs') \
+            .select('*') \
+            .eq('user_id', user_id) \
+            .execute()
         if response.error:
             raise Exception(response.error.message)
         configs = response.data
@@ -125,12 +125,12 @@ def get_webhook_config(id: str) -> Tuple[Any, int]:
     try:
         user_id = g.get('user_id')
         supabase = get_supabase_client()
-        response = supabase.table('webhook_configs')
-                         .select('*')
-                         .eq('id', id)
-                         .eq('user_id', user_id)
-                         .single()
-                         .execute()
+        response = supabase.table('webhook_configs') \
+            .select('*') \
+            .eq('id', id) \
+            .eq('user_id', user_id) \
+            .single() \
+            .execute()
         if response.error:
             # If no record found, return 404
             if response.status_code == 406 or 'no rows' in response.error.message.lower():
@@ -268,11 +268,11 @@ def update_webhook_config(id: str) -> Tuple[Any, int]:
 
         supabase = get_supabase_client()
         # Apply update
-        resp = supabase.table('webhook_configs')
-                         .update(update_payload)
-                         .eq('id', id)
-                         .eq('user_id', user_id)
-                         .execute()
+        resp = supabase.table('webhook_configs') \
+            .update(update_payload) \
+            .eq('id', id) \
+            .eq('user_id', user_id) \
+            .execute()
         if resp.error:
             raise Exception(resp.error.message)
         config = resp.data[0]
@@ -316,11 +316,11 @@ def delete_webhook_config(id: str) -> Tuple[Any, int]:
 
     try:
         supabase = get_supabase_client()
-        resp = supabase.table('webhook_configs')
-                         .delete()
-                         .eq('id', id)
-                         .eq('user_id', user_id)
-                         .execute()
+        resp = supabase.table('webhook_configs') \
+            .delete() \
+            .eq('id', id) \
+            .eq('user_id', user_id) \
+            .execute()
         if resp.error:
             raise Exception(resp.error.message)
         # If no rows affected, record not found
@@ -375,11 +375,11 @@ def toggle_webhook_active(id: str) -> Tuple[Any, int]:
 
         supabase = get_supabase_client()
         # Apply update
-        resp = supabase.table('webhook_configs')
-                         .update({'is_active': new_status})
-                         .eq('id', id)
-                         .eq('user_id', user_id)
-                         .execute()
+        resp = supabase.table('webhook_configs') \
+            .update({'is_active': new_status}) \
+            .eq('id', id) \
+            .eq('user_id', user_id) \
+            .execute()
         if resp.error:
             raise Exception(resp.error.message)
         if not resp.data or len(resp.data) == 0:
