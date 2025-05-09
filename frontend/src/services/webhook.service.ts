@@ -6,7 +6,8 @@ import {
   UpdateWebhookResponse,
   DeleteWebhookResponse
 } from '@/types/webhook';
-import { webhookApi, ApiError, USE_API, FORCE_LOCAL_STORAGE, isApiAvailable } from '@/services/api';
+import { webhookApi, ApiError, isApiAvailable } from '@/services/api';
+import { USE_API, FORCE_LOCAL_STORAGE } from '@/config/api.config';
 
 /**
  * Check if code is running in a browser environment
@@ -130,7 +131,8 @@ class WebhookService {
   async getWebhooks(): Promise<WebhookConfig[]> {
     if (this.shouldUseApi()) {
       try {
-        return await webhookApi.getAll();
+        const response = await webhookApi.getAll();
+        return response.data;
       } catch (error) {
         console.error('Failed to fetch webhooks via API:', error);
         // If API fails, fall back to localStorage
@@ -152,7 +154,8 @@ class WebhookService {
   async getWebhookById(id: string): Promise<WebhookConfig | null> {
     if (this.shouldUseApi()) {
       try {
-        return await webhookApi.getById(id);
+        const response = await webhookApi.getById(id);
+        return response.data;
       } catch (error) {
         if (error instanceof ApiError && error.status === 404) {
           return null;
@@ -321,9 +324,24 @@ class WebhookService {
    * @returns Promise resolving to updated webhook
    */
   async toggleWebhookActive(id: string, isActive: boolean): Promise<WebhookConfig> {
+    if (this.shouldUseApi()) {
+      try {
+        const response = await webhookApi.toggleActive(id);
+        return response.data.webhook;
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error(`Webhook with ID ${id} not found`);
+        }
+        console.error('Failed to toggle webhook status via API:', error);
+        console.warn('Falling back to localStorage for webhook status toggle');
+      }
+    }
+    
+    // Fall back to using the update method with localStorage
     const response = await this.updateWebhook(id, { isActive });
     return response.data.webhook;
   }
+
 
   /**
    * Toggle a webhook's active status (alias for toggleWebhookActive)
@@ -345,19 +363,19 @@ class WebhookService {
     id: string, 
     preferences: Partial<WebhookConfig['notificationPreferences']>
   ): Promise<WebhookConfig> {
-    const webhook = await this.getWebhookById(id);
-    
-    if (!webhook) {
+    const currentWebhook = await this.getWebhookById(id);
+    if (!currentWebhook) {
       throw new Error(`Webhook with ID ${id} not found`);
     }
-    
-    const updatedPreferences = {
-      ...webhook.notificationPreferences,
+
+    // Merge current and new preferences, ensuring all required fields are present
+    const updatedPreferences: WebhookConfig['notificationPreferences'] = {
+      ...currentWebhook.notificationPreferences,
       ...preferences
     };
-    
+
     const response = await this.updateWebhook(id, { 
-      notificationPreferences: updatedPreferences 
+      notificationPreferences: updatedPreferences
     });
     
     return response.data.webhook;

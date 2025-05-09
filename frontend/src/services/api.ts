@@ -8,23 +8,28 @@ import {
   ApiSuccessResponse,
   ApiErrorResponse,
   GetAllWebhooksResponse,
-  GetWebhookResponse
+  GetWebhookResponse,
+  ToggleWebhookResponse
 } from '@/types/webhook';
+
+import {
+  API_BASE_URL,
+  USE_API,
+  FORCE_LOCAL_STORAGE,
+  API_TIMEOUT,
+  API_MAX_RETRIES,
+  API_ENDPOINTS,
+  API_STATUS_CODES,
+  API_ERROR_CODES
+} from '@/config/api.config';
+
+import { camelToSnake, snakeToCamel, objectToCamelCase, objectToSnakeCase } from '@/utils/caseConversion';
 
 /**
  * API client for making HTTP requests to the backend
  * This module provides a centralized place for handling API requests,
  * including error handling, authentication, and configuration.
  */
-
-// Base API URL from environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-// Flag to determine whether to use API or mock data
-export const USE_API = process.env.NEXT_PUBLIC_USE_API === 'true';
-
-// Flag to force localStorage even if USE_API is true (for testing)
-export const FORCE_LOCAL_STORAGE = process.env.NEXT_PUBLIC_FORCE_LOCAL_STORAGE === 'true';
 
 /**
  * Custom error class for API errors
@@ -34,7 +39,7 @@ export class ApiError extends Error {
   code: string;
   details?: any;
 
-  constructor(status: number, message: string, code: string = 'UNKNOWN_ERROR', details?: any) {
+  constructor(status: number, message: string, code: string = API_ERROR_CODES.UNKNOWN_ERROR, details?: any) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -47,34 +52,68 @@ export class ApiError extends Error {
  * Check if the API server is available
  * @returns Promise resolving to boolean indicating if the API is available
  */
+// Health check cache to avoid frequent calls
+let cachedApiAvailable: boolean | null = null;
+let cachedApiCheckTime: number | null = null;
+const API_HEALTH_CHECK_TTL = 60 * 1000; // cache TTL in ms
+
 export async function isApiAvailable(): Promise<boolean> {
+  const now = Date.now();
+  if (cachedApiAvailable !== null && cachedApiCheckTime && now - cachedApiCheckTime < API_HEALTH_CHECK_TTL) {
+    return cachedApiAvailable;
+  }
+
   if (!USE_API || FORCE_LOCAL_STORAGE) {
     return false;
   }
   
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.health}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      // Short timeout to quickly check availability
       signal: AbortSignal.timeout(2000),
     });
     
-    return response.ok;
+    const isAvailable = response.ok;
+      cachedApiAvailable = isAvailable;
+      cachedApiCheckTime = now;
+      return isAvailable;
   } catch (error) {
-    console.warn('API health check failed:', error);
-    return false;
+    cachedApiAvailable = false;
+      cachedApiCheckTime = now;
+      console.warn('API health check failed:', error);
+      return false;
   }
 }
 
 /**
- * Base fetch function with error handling
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = API_MAX_RETRIES,
+  baseDelay: number = 1000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: unknown) {
+    if (retries === 0) throw error;
+    
+    const delay = baseDelay * Math.pow(2, API_MAX_RETRIES - retries);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    return retryWithBackoff(fn, retries - 1, baseDelay);
+  }
+}
+
+/**
+ * Base fetch function with error handling and case conversion
  */
 export async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { body?: any } = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
@@ -82,111 +121,145 @@ export async function fetchApi<T>(
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
+  // Inject Authorization header if token is present
+  const token = process.env.NEXT_PUBLIC_API_TOKEN || (typeof window !== 'undefined' ? localStorage.getItem('api_token') : null);
+  if (token) {
+    (headers as any)['Authorization'] = `Bearer ${token}`;
+  }
+  
+  // Convert request body from camelCase to snake_case if present
+  let body = options.body;
+  if (body && typeof body === 'string') {
+    try {
+      const parsedBody = JSON.parse(body);
+      body = JSON.stringify(objectToSnakeCase(parsedBody));
+    } catch (e) {
+      console.warn('Failed to parse and convert request body', e);
+    }
+  }
   
   const config = {
     ...options,
     headers,
+    body,
+    signal: AbortSignal.timeout(API_TIMEOUT)
   };
   
-  try {
-    const response = await fetch(url, config);
-    
-    // Parse the JSON response
-    const data = await response.json();
-    
-    // Check if the request was successful
-    if (!response.ok) {
-      // Handle API error response format
-      if (data.status === 'error') {
+  return retryWithBackoff(async () => {
+    try {
+      const response = await fetch(url, config);
+      
+      // Parse the JSON response
+      const data = await response.json();
+      
+      // Check if the request was successful
+      if (!response.ok) {
+        // Handle API error response format
+        if (data.status === 'error') {
+          throw new ApiError(
+            response.status,
+            data.message,
+            data.code,
+            data.details
+          );
+        }
+        
+        // Fallback for other error formats
         throw new ApiError(
           response.status,
-          data.message,
-          data.code,
-          data.details
+          data.message || 'An unexpected error occurred',
+          data.code || API_ERROR_CODES.UNKNOWN_ERROR
         );
       }
       
-      // Fallback for other error formats
+      // Convert response data from snake_case to camelCase
+      return objectToCamelCase<T>(data);
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      // Handle network errors and timeouts
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new ApiError(
+            API_STATUS_CODES.SERVER_ERROR,
+            'Request timed out',
+            API_ERROR_CODES.NETWORK_ERROR
+          );
+        }
+        
+        throw new ApiError(
+          API_STATUS_CODES.SERVER_ERROR,
+          'Network error occurred',
+          API_ERROR_CODES.NETWORK_ERROR,
+          error
+        );
+      }
+      
       throw new ApiError(
-        response.status,
-        data.message || 'An unexpected error occurred',
-        data.code || 'UNKNOWN_ERROR'
+        API_STATUS_CODES.SERVER_ERROR,
+        'Unknown error occurred',
+        API_ERROR_CODES.UNKNOWN_ERROR,
+        error
       );
     }
-    
-    // Return the data (usually within the 'data' field of the response)
-    return data as T;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    
-    // Handle network errors or JSON parsing errors
-    throw new ApiError(
-      500,
-      error instanceof Error ? error.message : 'Network error',
-      'NETWORK_ERROR',
-      { originalError: error }
-    );
-  }
+  });
 }
 
 /**
- * Webhook API endpoints
+ * Webhook API methods
  */
 export const webhookApi = {
   /**
    * Get all webhook configurations
-   * @returns List of webhook configurations
    */
-  getAll: async (): Promise<WebhookConfig[]> => {
-    const response = await fetchApi<GetAllWebhooksResponse>('/webhooks');
-    return response.data;
+  getAll: async (): Promise<GetAllWebhooksResponse> => {
+    return fetchApi<GetAllWebhooksResponse>(API_ENDPOINTS.webhooks.base);
   },
-  
+
   /**
-   * Get a specific webhook configuration by ID
-   * @param id Webhook configuration ID
-   * @returns Webhook configuration details
+   * Get a specific webhook configuration
    */
-  getById: async (id: string): Promise<WebhookConfig> => {
-    const response = await fetchApi<GetWebhookResponse>(`/webhooks/${id}`);
-    return response.data;
+  getById: async (id: string): Promise<GetWebhookResponse> => {
+    return fetchApi<GetWebhookResponse>(API_ENDPOINTS.webhooks.byId(id));
   },
-  
+
   /**
    * Create a new webhook configuration
-   * @param data Webhook configuration data
-   * @returns Response containing the created webhook
    */
   create: async (data: CreateWebhookConfigData): Promise<CreateWebhookResponse> => {
-    return fetchApi<CreateWebhookResponse>('/webhooks', {
+    return fetchApi<CreateWebhookResponse>(API_ENDPOINTS.webhooks.base, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(data)
     });
   },
-  
+
   /**
-   * Update an existing webhook configuration
-   * @param id Webhook configuration ID
-   * @param data Updated webhook configuration data
-   * @returns Response containing the updated webhook
+   * Update a webhook configuration
    */
   update: async (id: string, data: UpdateWebhookConfigData): Promise<UpdateWebhookResponse> => {
-    return fetchApi<UpdateWebhookResponse>(`/webhooks/${id}`, {
+    return fetchApi<UpdateWebhookResponse>(API_ENDPOINTS.webhooks.byId(id), {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(data)
     });
   },
-  
+
   /**
    * Delete a webhook configuration
-   * @param id Webhook configuration ID
-   * @returns Response confirming deletion
    */
   delete: async (id: string): Promise<DeleteWebhookResponse> => {
-    return fetchApi<DeleteWebhookResponse>(`/webhooks/${id}`, {
-      method: 'DELETE',
+    return fetchApi<DeleteWebhookResponse>(API_ENDPOINTS.webhooks.byId(id), {
+      method: 'DELETE'
     });
   },
+
+  /**
+   * Toggle webhook active status
+   */
+  toggleActive: async (id: string): Promise<ToggleWebhookResponse> => {
+    return fetchApi<ToggleWebhookResponse>(API_ENDPOINTS.webhooks.toggle(id), {
+      method: 'POST'
+    });
+  }
 }; 
