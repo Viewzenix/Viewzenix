@@ -41,6 +41,12 @@ yarn-error.log*
 frontend/build/
 frontend/dist/
 
+# Next.js
+.next/
+out/
+.vercel
+next-env.d.ts
+
 # IDE and editor files
 .idea/
 .vscode/
