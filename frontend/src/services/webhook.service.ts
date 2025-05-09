@@ -6,6 +6,24 @@ import { RealtimeChannel, PostgrestError } from '@supabase/supabase-js';
 
 const isBrowser = () => typeof window !== 'undefined';
 
+// Define the Supabase webhook record structure
+interface SupabaseWebhookRecord {
+  id: string;
+  name: string;
+  description?: string;
+  webhook_url: string;
+  security_token: string;
+  notification_preferences: {
+    email: boolean;
+    browser: boolean;
+    on_success: boolean;
+    on_failure: boolean;
+  };
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Service for managing webhook configurations with Supabase, API, and localStorage fallback.
  */
@@ -43,7 +61,7 @@ class WebhookService {
     try {
       const { data, error } = await supabase.from('webhooks').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      const webhooks = data.map(w => this.transformSupabaseWebhook(w));
+      const webhooks = data.map((w: SupabaseWebhookRecord) => this.transformSupabaseWebhook(w));
       this.mockWebhooks = webhooks;
       this.saveToStorage();
       this.notifySubscribers();
@@ -53,11 +71,11 @@ class WebhookService {
   }
 
   /** Transform Supabase record to WebhookConfig */
-  private transformSupabaseWebhook(record: any): WebhookConfig {
+  private transformSupabaseWebhook(record: SupabaseWebhookRecord): WebhookConfig {
     return {
       id: record.id,
       name: record.name,
-      description: record.description,
+      description: record.description || '',
       webhookUrl: record.webhook_url,
       securityToken: record.security_token,
       notificationPreferences: {
@@ -132,7 +150,7 @@ class WebhookService {
       try {
         const { data, error } = await supabase.from('webhooks').select('*').order('created_at', { ascending: false });
         if (!error && data) {
-          const webhooks = data.map(w => this.transformSupabaseWebhook(w));
+          const webhooks = data.map((w: SupabaseWebhookRecord) => this.transformSupabaseWebhook(w));
           this.mockWebhooks = webhooks;
           this.saveToStorage();
           return webhooks;

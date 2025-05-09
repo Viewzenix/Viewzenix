@@ -1,22 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
 
-/**
- * Supabase URL from environment variables
- * In development, this should be set in .env.local
- */
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-/**
- * Supabase anon key from environment variables
- * In development, this should be set in .env.local
- */
-export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-/**
- * Check if Supabase is configured
- */
-export const IS_SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+// Check if Supabase is properly configured
+export const IS_SUPABASE_CONFIGURED = supabaseUrl !== '' && supabaseKey !== '';
 
 // Warn if Supabase is not configured
 if (typeof window !== 'undefined' && !IS_SUPABASE_CONFIGURED) {
@@ -29,36 +18,22 @@ if (typeof window !== 'undefined' && !IS_SUPABASE_CONFIGURED) {
 /**
  * Create a single Supabase client for the entire app
  */
-export const supabase = createClient<Database>(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-    global: {
-      headers: {
-        'x-application-name': 'viewzenix',
-      },
-    },
-  }
-);
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * Check if Supabase is available by making a test query
- * @returns Promise resolving to boolean indicating if Supabase is available
+ * Check if Supabase is available
  */
-export async function isSupabaseAvailable(): Promise<boolean> {
+export const isSupabaseAvailable = async (): Promise<boolean> => {
   if (!IS_SUPABASE_CONFIGURED) {
     return false;
   }
   
   try {
+    // Simple query to check if we can connect
     const { error } = await supabase.from('webhooks').select('count');
     return !error;
-  } catch (err) {
-    console.warn('Error checking Supabase availability:', err);
+  } catch (e) {
+    console.error('Supabase connection error:', e);
     return false;
   }
-} 
+}; 
