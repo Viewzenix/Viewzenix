@@ -6,18 +6,22 @@ import {
   UpdateWebhookResponse,
   DeleteWebhookResponse
 } from '@/types/webhook';
+import { webhookApi, ApiError, USE_API } from '@/services/api';
 
 /**
  * Service for managing webhook configurations
  * This service provides CRUD operations for webhook configurations and
- * uses localStorage for data persistence between sessions.
+ * can use either the backend API or localStorage for data persistence.
  */
 class WebhookService {
   private mockWebhooks: WebhookConfig[] = [];
   private readonly STORAGE_KEY = 'viewzenix_webhooks';
 
   constructor() {
-    this.loadFromStorage();
+    // Only load from storage if not using API
+    if (!USE_API) {
+      this.loadFromStorage();
+    }
   }
 
   /**
@@ -82,7 +86,20 @@ class WebhookService {
    * @returns Promise resolving to array of webhook configurations
    */
   async getWebhooks(): Promise<WebhookConfig[]> {
-    // Simulate API delay
+    if (USE_API) {
+      try {
+        return await webhookApi.getAll();
+      } catch (error) {
+        console.error('Failed to fetch webhooks from API:', error);
+        // Fallback to localStorage if API fails
+        if (!this.mockWebhooks.length) {
+          this.loadFromStorage();
+        }
+        return [...this.mockWebhooks];
+      }
+    }
+    
+    // Use localStorage data with simulated API delay
     await this.delay(800);
     return [...this.mockWebhooks];
   }
@@ -97,7 +114,24 @@ class WebhookService {
       throw new Error('Webhook ID is required');
     }
 
-    // Simulate API delay
+    if (USE_API) {
+      try {
+        return await webhookApi.getById(id);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return null;
+        }
+        console.error(`Failed to fetch webhook ${id} from API:`, error);
+        // Fallback to localStorage if API fails
+        if (!this.mockWebhooks.length) {
+          this.loadFromStorage();
+        }
+        const webhook = this.mockWebhooks.find(w => w.id === id);
+        return webhook ? { ...webhook } : null;
+      }
+    }
+    
+    // Use localStorage data with simulated API delay
     await this.delay(500);
     const webhook = this.mockWebhooks.find(w => w.id === id);
     return webhook ? { ...webhook } : null;
@@ -117,7 +151,21 @@ class WebhookService {
       throw new Error('Security token is required');
     }
 
-    // Simulate API delay
+    if (USE_API) {
+      try {
+        return await webhookApi.create(data);
+      } catch (error) {
+        console.error('Failed to create webhook via API:', error);
+        // If API fails, fall back to localStorage
+        // but make it clear in logs this is a fallback
+        console.warn('Falling back to localStorage for webhook creation');
+        if (!this.mockWebhooks.length) {
+          this.loadFromStorage();
+        }
+      }
+    }
+    
+    // Use localStorage with simulated API delay
     await this.delay(1000);
     
     // Generate a new webhook with default values and provided data
@@ -150,7 +198,23 @@ class WebhookService {
       throw new Error('Webhook ID is required');
     }
 
-    // Simulate API delay
+    if (USE_API) {
+      try {
+        return await webhookApi.update(id, data);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error(`Webhook with ID ${id} not found`);
+        }
+        console.error(`Failed to update webhook ${id} via API:`, error);
+        // If API fails, try to fall back to localStorage
+        console.warn('Falling back to localStorage for webhook update');
+        if (!this.mockWebhooks.length) {
+          this.loadFromStorage();
+        }
+      }
+    }
+    
+    // Use localStorage with simulated API delay
     await this.delay(800);
     
     // Find webhook index
@@ -187,7 +251,23 @@ class WebhookService {
       throw new Error('Webhook ID is required');
     }
 
-    // Simulate API delay
+    if (USE_API) {
+      try {
+        return await webhookApi.delete(id);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error(`Webhook with ID ${id} not found`);
+        }
+        console.error(`Failed to delete webhook ${id} via API:`, error);
+        // If API fails, try to fall back to localStorage
+        console.warn('Falling back to localStorage for webhook deletion');
+        if (!this.mockWebhooks.length) {
+          this.loadFromStorage();
+        }
+      }
+    }
+    
+    // Use localStorage with simulated API delay
     await this.delay(700);
     
     // Find webhook index
@@ -218,7 +298,23 @@ class WebhookService {
       throw new Error('Webhook ID is required');
     }
 
-    // Simulate API delay
+    if (USE_API) {
+      try {
+        return await webhookApi.toggleStatus(id, isActive);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error(`Webhook with ID ${id} not found`);
+        }
+        console.error(`Failed to toggle webhook ${id} status via API:`, error);
+        // If API fails, try to fall back to localStorage
+        console.warn('Falling back to localStorage for webhook status toggle');
+        if (!this.mockWebhooks.length) {
+          this.loadFromStorage();
+        }
+      }
+    }
+    
+    // Use localStorage with simulated API delay
     await this.delay(500);
     
     // Find webhook index
@@ -247,6 +343,12 @@ class WebhookService {
    * @returns Promise resolving when all webhooks are cleared
    */
   async clearAllWebhooks(): Promise<void> {
+    if (USE_API) {
+      // This would require a backend endpoint that may not exist
+      // For now, just clear the localStorage as a fallback
+      console.warn('API does not support clearing all webhooks, using localStorage fallback');
+    }
+    
     // Simulate API delay
     await this.delay(500);
     
