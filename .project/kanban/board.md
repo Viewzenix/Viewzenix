@@ -8,9 +8,6 @@
 
 ## Todo
 - TASK-008: Implement Webhook Configuration Management Endpoints
-- TASK-107: Fix Webhook Status Toggle Functionality
-- TASK-108: Fix React Rendering Errors in Webhook Setup Page
-- TASK-109: Fix Server-Side Rendering Compatibility in WebhookService
 
 ## In Progress
 
@@ -26,3 +23,6 @@
 - TASK-102: Create webhook validation middleware
 - TASK-103: Implement order processing service
 - TASK-104: Create broker adapter interface
+- TASK-107: Fix Webhook Status Toggle Functionality (5/9/2025)
+- TASK-108: Fix React Rendering Errors in Webhook Setup Page (5/9/2025)
+- TASK-109: Fix Server-Side Rendering Compatibility in WebhookService (5/9/2025)

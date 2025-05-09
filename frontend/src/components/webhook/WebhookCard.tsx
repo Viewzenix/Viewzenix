@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { WebhookConfig } from '@/types/webhook';
 import { Button, StatusMessage } from '@/components/common';
 import { webhookService } from '@/services/webhook.service';
@@ -20,19 +20,25 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
   const [error, setError] = useState<string | null>(null);
 
   // Handle keyboard events for accessibility
-  const handleKeyDown = (event: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       handleToggleActive();
     }
-  };
+  }, []);
 
   // Toggle active status
-  const handleToggleActive = async () => {
+  const handleToggleActive = useCallback(async () => {
+    if (!webhook || !webhook.id) {
+      setError('Invalid webhook configuration');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
       
+      // Use the correct method name that exists in the service
       const updatedWebhook = await webhookService.toggleWebhookStatus(webhook.id, !webhook.isActive);
       
       // Use callback if provided, otherwise fallback to page reload
@@ -40,30 +46,40 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
         onStatusChange(updatedWebhook);
       } else {
         // Fallback to reload for backwards compatibility
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
       }
     } catch (err) {
+      console.error('Error toggling webhook status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update webhook status');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [webhook, onStatusChange]);
 
   // Copy webhook URL to clipboard
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(webhook.webhookUrl).then(() => {
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    });
-  };
+  const copyToClipboard = useCallback(() => {
+    if (typeof navigator !== 'undefined' && webhook?.webhookUrl) {
+      navigator.clipboard.writeText(webhook.webhookUrl).then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      });
+    }
+  }, [webhook]);
 
   // Format datetime
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
+  }, []);
+
+  // Early return if webhook is undefined
+  if (!webhook) {
+    return null;
+  }
 
   return (
     <div className={styles.card}>
@@ -85,10 +101,10 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
             title={`Click to ${webhook.isActive ? 'deactivate' : 'activate'} webhook`}
             role="button"
             tabIndex={0}
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: isLoading ? 'wait' : 'pointer' }}
             aria-label={`Webhook is ${webhook.isActive ? 'active' : 'inactive'}. Click to ${webhook.isActive ? 'deactivate' : 'activate'}.`}
           >
-            {webhook.isActive ? 'Active' : 'Inactive'}
+            {isLoading ? 'Updating...' : webhook.isActive ? 'Active' : 'Inactive'}
           </div>
         </div>
         
