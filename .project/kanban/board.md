@@ -7,14 +7,17 @@
 - TASK-004: Design webhook API contract
 
 ## Todo
+- TASK-110: Update Backend Controllers for SQLite Compatibility
+- TASK-111: Implement API Client in Frontend WebhookService
+- TASK-112: Add Database Migration Scripts
+- TASK-113: Create End-to-End Integration Tests
 
 ## In Progress
 
 ## Blocked
-- TASK-106: WebhookService Backend Integration
+- TASK-106: WebhookService Backend Integration (Blocked by TASK-110, TASK-111)
 
 ## Review
-- TASK-105: Implement Webhook Setup UI
 
 ## Done
 - TASK-008: Implement Webhook Configuration Management Endpoints (2025-06-05)
@@ -23,6 +26,7 @@
 - TASK-102: Create webhook validation middleware
 - TASK-103: Implement order processing service
 - TASK-104: Create broker adapter interface
+- TASK-105: Implement Webhook Setup UI (5/9/2025)
 - TASK-107: Fix Webhook Status Toggle Functionality (5/9/2025)
 - TASK-108: Fix React Rendering Errors in Webhook Setup Page (5/9/2025)
 - TASK-109: Fix Server-Side Rendering Compatibility in WebhookService (5/9/2025)

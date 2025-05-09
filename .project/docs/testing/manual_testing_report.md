@@ -3,6 +3,117 @@
 ## Overview
 This document records the results of manual testing performed on the Viewzenix trading webhook platform.
 
+## Frontend Webhook Toggle Functionality Testing
+
+During our testing of the webhook status toggle functionality (TASK-107), we identified the following issues:
+
+1. **Frontend Error**: 
+   - Error in console: `_services_webhook_service__WEBPACK_IMPORTED_MODULE_3__._webhookService.toggleWebhookActive is not a function`
+   - This prevents the status toggle from working when clicking on the status badge
+
+2. **Root Cause Analysis**:
+   - The `WebhookService` is missing a `toggleWebhookActive` method which is called by the UI components
+   - The webhook model defines an `isActive` property, but the toggle functionality isn't properly implemented
+   - The backend expects a PATCH request to `/webhooks/{id}/toggle` but the frontend service doesn't include this endpoint
+
+3. **Implementation Gap**:
+   - The frontend has already implemented UI components that expect to toggle webhook status
+   - The backend has implemented the toggle endpoint
+   - The frontend service needs to connect to this endpoint
+
+## Frontend-Backend Integration Challenges
+
+Our testing revealed a significant gap in the integration between frontend and backend:
+
+1. **API Mismatch**:
+   - Frontend expects CRUD endpoints for webhook configurations
+   - Backend has implemented these endpoints but with database compatibility issues
+   - The local storage implementation in the frontend works, but can't connect to the backend yet
+
+2. **Data Model Differences**:
+   - Frontend uses camelCase properties (isActive, securityToken)
+   - Backend model uses snake_case properties (is_active, security_token)
+   - The frontend needs proper serialization/deserialization to handle these differences
+
+## Update: SQLite Database Implementation for Testing
+
+During our testing efforts, we identified a database configuration issue that needed to be addressed:
+
+1. **Issue**: The backend application was configured to use PostgreSQL-specific data types (UUID, JSONB) which aren't compatible with SQLite or other database engines.
+
+2. **Solution**: We modified the application to use a database-agnostic approach:
+   - The WebhookConfig model was updated to use standard SQL types that work across database engines
+   - A custom JSONEncodedDict type was implemented for SQLite compatibility
+   - The primary key now uses string representation of UUIDs rather than PostgreSQL's native UUID type
+
+3. **Implementation**: The following files were modified:
+   - `app/core/models/webhook_config.py`: Updated to use database-agnostic types
+   - `run_dev.py`: Created to easily start the development server with SQLite configuration
+
+4. **Benefits**:
+   - Simplified development environment setup (no need for PostgreSQL installation)
+   - More portable codebase that works with multiple database engines
+   - Easier testing with in-memory SQLite database
+   
+5. **Remaining Issues**:
+   - The routes still use UUID objects directly which causes SQLite incompatibility
+   - The controllers in `app/api/routes/webhook_config.py` need to be updated to work with string IDs
+   - Path parameters are defined as `<uuid:id>` which needs to be changed to `<string:id>`
+   - Related tests may also need to be updated
+   
+6. **Next Steps**:
+   - Update all controllers to handle string IDs instead of UUID objects
+   - Ensure consistent model patterns across all data models
+   - Update route parameters to use string IDs
+   - Add production configuration documentation for PostgreSQL deployment
+   - Implement proper database migration scripts
+   - Verify all endpoints work with the modified database configuration
+
+## Backend API Testing Results (Webhook Toggle Endpoint)
+
+We attempted to test the backend API endpoints but encountered several issues:
+
+1. **Webhook Creation Issue**:
+   - When attempting to create a webhook configuration, we encountered a SQLite error: `Error binding parameter 1: type 'UUID' is not supported`
+   - This occurs because the controller in `webhook_config.py` still uses UUID objects directly even though the model has been updated to use strings
+   - The validation schema correctly accepts the request, but the database operation fails
+
+2. **Webhook Toggle Endpoint**:
+   - We were unable to test the toggle endpoint due to the inability to create a webhook configuration
+   - The route is correctly implemented but the UUID type incompatibility prevents testing
+
+3. **Database Compatibility**:
+   - The core issue is a mismatch between the model's use of string IDs and the controller's use of UUID objects
+   - This highlights the need for a comprehensive update to ensure consistent data types across the application
+
+## Recommendations for Backend
+
+To fix these issues, we recommend the following changes:
+
+1. **Controller Updates**:
+   ```python
+   # Change from:
+   webhook_id = uuid.uuid4()
+   # To:
+   webhook_id = str(uuid.uuid4())
+   ```
+
+2. **Route Parameter Updates**:
+   ```python
+   # Change from:
+   @webhook_config_bp.route('/<uuid:id>', methods=['GET'])
+   def get_webhook_config(id: uuid.UUID):
+   # To:
+   @webhook_config_bp.route('/<string:id>', methods=['GET'])
+   def get_webhook_config(id: str):
+   ```
+
+3. **Consistent Type Handling**:
+   - Ensure all database interactions use string IDs rather than UUID objects
+   - Update all related tests to work with string IDs
+
+These changes will allow the application to work correctly with SQLite for development and testing while maintaining compatibility with PostgreSQL for production use.
+
 ## Test Environment
 - Date: May 5, 2025
 - Tester: John
