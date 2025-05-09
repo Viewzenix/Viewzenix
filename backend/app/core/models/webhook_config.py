@@ -32,7 +32,7 @@ class WebhookConfig(db.Model):
     security_token = db.Column(db.String(255), nullable=False)
     
     # Notification preferences - Using database-agnostic JSON type instead of PostgreSQL JSONB
-    notification_preferences = db.Column(JSON, nullable=False, default={
+    notification_preferences = db.Column(JSON, nullable=False, default=lambda: {
         "email": True,
         "browser": True,
         "onSuccess": True,
