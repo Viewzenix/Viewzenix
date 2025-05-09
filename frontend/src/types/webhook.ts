@@ -138,3 +138,18 @@ export interface DeleteWebhookResponseData {
  * Response from webhook deletion API
  */
 export interface DeleteWebhookResponse extends ApiSuccessResponse<DeleteWebhookResponseData> {}
+
+/**
+ * Toggle webhook response data
+ */
+export interface ToggleWebhookResponseData {
+  /** The updated webhook configuration */
+  webhook: WebhookConfig;
+  /** Success status */
+  success: boolean;
+}
+
+/**
+ * Response from webhook toggle API
+ */
+export interface ToggleWebhookResponse extends ApiSuccessResponse<ToggleWebhookResponseData> {}
