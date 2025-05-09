@@ -31,9 +31,9 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const onOpen = () => setIsOpen(true);
-  const onClose = () => setIsOpen(false);
+  const [open, setOpen] = React.useState(false);
+  const onOpen = () => setOpen(true);
+  const onClose = () => setOpen(false);
   const pathname = usePathname();
 
   return (
@@ -54,7 +54,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <SidebarContent />
       </Box>
       {/* Mobile drawer */}
-      <Drawer.Root open={isOpen} onOpenChange={setIsOpen}>
+      <Drawer.Root open={open} onOpenChange={(open) => setOpen(open)}>
         <Drawer.Backdrop />
         <Drawer.Content>
           <SidebarContent onClose={onClose} />

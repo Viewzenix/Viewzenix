@@ -26,22 +26,20 @@ export function AuthTabs({ onAuthSuccess, defaultTab = 0 }: AuthTabsProps) {
       width="100%"
       maxW="500px"
     >
-      <Tabs isFitted index={tabIndex} onChange={setTabIndex}>
-        <TabList mb={4}>
-          <Tab fontWeight="medium">Sign In</Tab>
-          <Tab fontWeight="medium">Create Account</Tab>
-        </TabList>
+      <Tabs.Root fitted index={tabIndex} onChange={setTabIndex}>
+        <Tabs.List mb={4}>
+          <Tabs.Trigger value="signin" fontWeight="medium">Sign In</Tabs.Trigger>
+          <Tabs.Trigger value="signup" fontWeight="medium">Create Account</Tabs.Trigger>
+        </Tabs.List>
         
-        <TabPanels>
-          <TabPanel p={0} pt={4}>
-            <LoginForm onSuccess={handleAuthSuccess} />
-          </TabPanel>
-          
-          <TabPanel p={0} pt={4}>
-            <SignupForm onSuccess={handleAuthSuccess} />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+        <Tabs.Content value="signin" p={0} pt={4}>
+          <LoginForm onSuccess={handleAuthSuccess} />
+        </Tabs.Content>
+        
+        <Tabs.Content value="signup" p={0} pt={4}>
+          <SignupForm onSuccess={handleAuthSuccess} />
+        </Tabs.Content>
+      </Tabs.Root>
     </Box>
   );
 }

@@ -16,7 +16,7 @@ interface WebhookCardProps {
 export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: WebhookCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Handle keyboard events for accessibility
@@ -101,10 +101,10 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
             title={`Click to ${webhook.isActive ? 'deactivate' : 'activate'} webhook`}
             role="button"
             tabIndex={0}
-            style={{ cursor: isLoading ? 'wait' : 'pointer' }}
+            style={{ cursor: loading ? 'wait' : 'pointer' }}
             aria-label={`Webhook is ${webhook.isActive ? 'active' : 'inactive'}. Click to ${webhook.isActive ? 'deactivate' : 'activate'}.`}
           >
-            {isLoading ? 'Updating...' : webhook.isActive ? 'Active' : 'Inactive'}
+            {loading ? 'Updating...' : webhook.isActive ? 'Active' : 'Inactive'}
           </div>
         </div>
         
@@ -210,8 +210,8 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
               variant={webhook.isActive ? 'danger' : 'primary'} 
               size="sm"
               onClick={handleToggleActive}
-              isLoading={isLoading}
-              disabled={isLoading}
+              loading={loading}
+              disabled={loading}
             >
               {webhook.isActive ? 'Disable Webhook' : 'Enable Webhook'}
             </Button>

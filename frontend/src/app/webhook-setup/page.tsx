@@ -10,7 +10,7 @@ import styles from './page.module.css'
 export default function WebhookSetupPage() {
   // State for webhooks data
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   // State for UI controls
@@ -25,7 +25,7 @@ export default function WebhookSetupPage() {
   useEffect(() => {
     const fetchWebhooks = async () => {
       try {
-        setIsLoading(true);
+        setLoading(true);
         setError(null);
         
         const webhooksData = await webhookService.getWebhooks();
@@ -34,7 +34,7 @@ export default function WebhookSetupPage() {
         setError('Failed to load webhook configurations. Please try again later.');
         console.error('Error fetching webhooks:', err);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
     
@@ -124,11 +124,11 @@ export default function WebhookSetupPage() {
   const renderCreateWebhookButton = useCallback(() => (
     <Button 
       onClick={() => setShowForm(true)}
-      disabled={isLoading}
+      disabled={loading}
     >
       Create New Webhook
     </Button>
-  ), [isLoading]);
+  ), [loading]);
 
   return (
     <div className={styles.container}>
@@ -203,7 +203,7 @@ export default function WebhookSetupPage() {
           <div className={styles.webhooksSection}>
             <h2 className={styles.sectionTitle}>Your Webhook Configurations</h2>
             
-            {isLoading ? (
+            {loading ? (
               <div className={styles.loadingState}>Loading webhook configurations...</div>
             ) : error ? (
               <div className={styles.errorState}>{error}</div>

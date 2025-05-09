@@ -7,14 +7,10 @@ import {
   Text,
   SimpleGrid,
   Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
   Flex,
   Button,
   Spinner,
-  Alert,
-  AlertIcon
+  Alert
 } from '@chakra-ui/react';
 import { MainLayout } from '@/components/layout';
 import { authService } from '@/services/auth.service';
@@ -71,10 +67,10 @@ export default function Dashboard() {
     <MainLayout>
       <Container maxW="container.xl" py={8}>
         {error && (
-          <Alert status="error" mb={6}>
-            <AlertIcon />
+          <Alert.Root status="error" mb={6}>
+            <Alert.Icon />
             {error}
-          </Alert>
+          </Alert.Root>
         )}
         
         <Heading size="lg" mb={6}>Dashboard</Heading>
@@ -82,23 +78,23 @@ export default function Dashboard() {
         {/* Stats */}
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={8}>
           <Stat bg="white" p={5} borderRadius="lg" boxShadow="md">
-            <StatLabel>Total Webhooks</StatLabel>
-            <StatNumber>{webhooks.length}</StatNumber>
-            <StatHelpText>Configured webhook endpoints</StatHelpText>
+            <Stat.Label>Total Webhooks</Stat.Label>
+            <Stat.Number>{webhooks.length}</Stat.Number>
+            <Stat.HelpText>Configured webhook endpoints</Stat.HelpText>
           </Stat>
           
           <Stat bg="white" p={5} borderRadius="lg" boxShadow="md">
-            <StatLabel>Active Webhooks</StatLabel>
-            <StatNumber>
+            <Stat.Label>Active Webhooks</Stat.Label>
+            <Stat.Number>
               {webhooks.filter(webhook => webhook.isActive).length}
-            </StatNumber>
-            <StatHelpText>Currently receiving signals</StatHelpText>
+            </Stat.Number>
+            <Stat.HelpText>Currently receiving signals</Stat.HelpText>
           </Stat>
           
           <Stat bg="white" p={5} borderRadius="lg" boxShadow="md">
-            <StatLabel>Recent Signals</StatLabel>
-            <StatNumber>0</StatNumber>
-            <StatHelpText>In the last 24 hours</StatHelpText>
+            <Stat.Label>Recent Signals</Stat.Label>
+            <Stat.Number>0</Stat.Number>
+            <Stat.HelpText>In the last 24 hours</Stat.HelpText>
           </Stat>
         </SimpleGrid>
         
@@ -106,7 +102,7 @@ export default function Dashboard() {
         <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
           <Flex justify="space-between" align="center" mb={4}>
             <Heading size="md">Your Webhooks</Heading>
-            <Button colorScheme="brand" size="sm">
+            <Button colorPalette="brand" size="sm">
               Create Webhook
             </Button>
           </Flex>
@@ -116,7 +112,7 @@ export default function Dashboard() {
               <Text color="gray.500">
                 You don't have any webhooks configured yet.
               </Text>
-              <Button mt={4} colorScheme="brand">
+              <Button mt={4} colorPalette="brand">
                 Create Your First Webhook
               </Button>
             </Box>

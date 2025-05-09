@@ -90,17 +90,17 @@ export function WebhookConfigForm({ onSuccess, onCancel, defaultValues }: Webhoo
         </Alert>
       )}
       <Stack as="form" spacing={4} onSubmit={handleSubmit(onSubmit)}>
-        <FormControl isInvalid={!!errors.name}>
+        <FormControl invalid={!!errors.name}>
           <FormLabel>Name</FormLabel>
           <Input placeholder="Webhook name" {...register('name', { required: 'Required', maxLength: { value: 100, message: 'Max 100 chars' } })} />
           <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
         </FormControl>
-        <FormControl isInvalid={!!errors.description}>
+        <FormControl invalid={!!errors.description}>
           <FormLabel>Description</FormLabel>
           <Textarea placeholder="Description" {...register('description', { maxLength: { value: 500, message: 'Max 500 chars' } })} />
           <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
         </FormControl>
-        <FormControl isInvalid={!!errors.securityToken}>
+        <FormControl invalid={!!errors.securityToken}>
           <FormLabel>Security Token</FormLabel>
           <HStack>
             <Input placeholder="Secure token" {...register('securityToken', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} />
@@ -126,7 +126,7 @@ export function WebhookConfigForm({ onSuccess, onCancel, defaultValues }: Webhoo
           <Switch id="isActive" {...register('isActive')} />
         </FormControl>
         <HStack spacing={4} pt={4}>
-          <Button colorScheme="brand" type="submit" isLoading={isSubmitting}>
+          <Button colorPalette="brand" type="submit" loading={isSubmitting}>
             {isEditMode ? 'Update' : 'Create'}
           </Button>
           {onCancel && (

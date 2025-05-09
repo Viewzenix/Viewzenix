@@ -63,29 +63,29 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   
   return (
     <Box w="100%" maxW="400px" p={4}>
-      <VStack spacing={6} align="stretch">
+      <Stack direction="column" spacing={6} align="stretch">
         <Box textAlign="center">
           <Heading size="lg">Create Account</Heading>
           <Text mt={2} color="gray.600">Join Viewzenix trading platform</Text>
         </Box>
         
         {error && (
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
+          <Alert.Root status="error" borderRadius="md">
+            <Alert.Icon />
             {error}
-          </Alert>
+          </Alert.Root>
         )}
         
         {successMessage && (
-          <Alert status="success" borderRadius="md">
-            <AlertIcon />
+          <Alert.Root status="success" borderRadius="md">
+            <Alert.Icon />
             {successMessage}
-          </Alert>
+          </Alert.Root>
         )}
         
         <form onSubmit={handleSubmit(onSubmit)}>
-          <VStack spacing={4}>
-            <FormControl isInvalid={!!errors.email}>
+          <Stack direction="column" spacing={4}>
+            <FormControl invalid={!!errors.email}>
               <FormLabel htmlFor="email">Email</FormLabel>
               <Input
                 id="email"
@@ -104,7 +104,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               </FormErrorMessage>
             </FormControl>
             
-            <FormControl isInvalid={!!errors.password}>
+            <FormControl invalid={!!errors.password}>
               <FormLabel htmlFor="password">Password</FormLabel>
               <Input
                 id="password"
@@ -123,7 +123,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               </FormErrorMessage>
             </FormControl>
             
-            <FormControl isInvalid={!!errors.confirmPassword}>
+            <FormControl invalid={!!errors.confirmPassword}>
               <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
               <Input
                 id="confirmPassword"
@@ -142,10 +142,10 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             
             <Button 
               type="submit" 
-              colorScheme="brand" 
+              colorPalette="brand" 
               width="full" 
               mt={4} 
-              isLoading={isSubmitting}
+              loading={isSubmitting}
               loadingText="Creating Account"
             >
               Create Account

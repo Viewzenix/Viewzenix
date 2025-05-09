@@ -4,17 +4,11 @@ import {
   Box,
   Flex,
   Drawer,
-  DrawerBody,
-  DrawerHeader,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
   IconButton,
   useDisclosure,
   Heading,
   Text,
-  VStack,
-  HStack,
+  Stack,
   Link,
   Button,
   Avatar,
@@ -40,7 +34,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open: isOpen, onOpen, onClose } = useDisclosure();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   
@@ -83,24 +77,26 @@ export function MainLayout({ children }: MainLayoutProps) {
         align="center"
         justify="space-between"
       >
-        <HStack spacing={4}>
+        <Stack direction="row" gap={4}>
           <IconButton
             aria-label="Open menu"
-            icon={<Text>≡</Text>} // Replace with actual icon
             display={{ base: 'flex', md: 'none' }}
             onClick={onOpen}
-          />
+          >
+            <Text>≡</Text> {/* Replace with actual icon */}
+          </IconButton>
           
           <Heading size="md" color="brand.500">Viewzenix</Heading>
-        </HStack>
+        </Stack>
         
         {user && (
           <Menu>
-            <MenuButton as={Button} variant="ghost" rightIcon={<Text>▼</Text>}>
-              <HStack>
+            <MenuButton as={Button} variant="ghost">
+              <Stack direction="row" gap={2} align="center">
                 <Avatar size="sm" name={user.email} />
                 <Text display={{ base: 'none', md: 'block' }}>{user.email}</Text>
-              </HStack>
+                <Text>▼</Text>
+              </Stack>
             </MenuButton>
             <MenuList>
               <MenuItem>Profile</MenuItem>
@@ -113,19 +109,19 @@ export function MainLayout({ children }: MainLayoutProps) {
       </Flex>
       
       {/* Sidebar for mobile */}
-      <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader>Navigation</DrawerHeader>
+      <Drawer.Root open={isOpen} onOpenChange={(open) => open ? onOpen() : onClose()}>
+        <Drawer.Backdrop />
+        <Drawer.Content placement="left">
+          <Drawer.CloseTrigger />
+          <Drawer.Header>Navigation</Drawer.Header>
           
-          <DrawerBody>
-            <VStack align="stretch" spacing={2}>
+          <Drawer.Body>
+            <Stack direction="column" align="stretch" gap={2}>
               {NAV_ITEMS.map((item) => (
                 <Button
                   key={item.path}
                   variant={isActive(item.path) ? 'solid' : 'ghost'}
-                  colorScheme={isActive(item.path) ? 'brand' : 'gray'}
+                  colorPalette={isActive(item.path) ? 'brand' : 'gray'}
                   justifyContent="flex-start"
                   onClick={() => {
                     router.push(item.path);
@@ -135,10 +131,10 @@ export function MainLayout({ children }: MainLayoutProps) {
                   {item.name}
                 </Button>
               ))}
-            </VStack>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+            </Stack>
+          </Drawer.Body>
+        </Drawer.Content>
+      </Drawer.Root>
       
       {/* Main content area */}
       <Flex>
@@ -153,19 +149,19 @@ export function MainLayout({ children }: MainLayoutProps) {
           display={{ base: 'none', md: 'block' }}
           p={4}
         >
-          <VStack align="stretch" spacing={2}>
+          <Stack direction="column" align="stretch" gap={2}>
             {NAV_ITEMS.map((item) => (
               <Button
                 key={item.path}
                 variant={isActive(item.path) ? 'solid' : 'ghost'}
-                colorScheme={isActive(item.path) ? 'brand' : 'gray'}
+                colorPalette={isActive(item.path) ? 'brand' : 'gray'}
                 justifyContent="flex-start"
                 onClick={() => router.push(item.path)}
               >
                 {item.name}
               </Button>
             ))}
-          </VStack>
+          </Stack>
         </Box>
         
         {/* Page content */}

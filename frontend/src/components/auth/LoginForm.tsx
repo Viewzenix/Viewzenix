@@ -54,22 +54,22 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   
   return (
     <Box w="100%" maxW="400px" p={4}>
-      <VStack spacing={6} align="stretch">
+      <Stack direction="column" spacing={6} align="stretch">
         <Box textAlign="center">
           <Heading size="lg">Sign In</Heading>
           <Text mt={2} color="gray.600">Access your Viewzenix dashboard</Text>
         </Box>
         
         {error && (
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
+          <Alert.Root status="error" borderRadius="md">
+            <Alert.Icon />
             {error}
-          </Alert>
+          </Alert.Root>
         )}
         
         <form onSubmit={handleSubmit(onSubmit)}>
-          <VStack spacing={4}>
-            <FormControl isInvalid={!!errors.email}>
+          <Stack direction="column" spacing={4}>
+            <FormControl invalid={!!errors.email}>
               <FormLabel htmlFor="email">Email</FormLabel>
               <Input
                 id="email"
@@ -88,7 +88,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               </FormErrorMessage>
             </FormControl>
             
-            <FormControl isInvalid={!!errors.password}>
+            <FormControl invalid={!!errors.password}>
               <FormLabel htmlFor="password">Password</FormLabel>
               <Input
                 id="password"
@@ -109,10 +109,10 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             
             <Button 
               type="submit" 
-              colorScheme="brand" 
+              colorPalette="brand" 
               width="full" 
               mt={4} 
-              isLoading={isSubmitting}
+              loading={isSubmitting}
               loadingText="Signing In"
             >
               Sign In
