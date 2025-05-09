@@ -72,6 +72,19 @@ export default function WebhookSetupPage() {
     });
   };
 
+  // Handle webhook status change
+  const handleStatusChange = (updatedWebhook: WebhookConfig) => {
+    setWebhooks(prevWebhooks => 
+      prevWebhooks.map(webhook => 
+        webhook.id === updatedWebhook.id ? updatedWebhook : webhook
+      )
+    );
+    setStatusMessage({
+      type: 'success',
+      message: `Webhook ${updatedWebhook.isActive ? 'activated' : 'deactivated'} successfully!`
+    });
+  };
+
   // Handle cancel button click
   const handleCancelForm = () => {
     setShowForm(false);
@@ -205,6 +218,7 @@ export default function WebhookSetupPage() {
                     webhook={webhook}
                     onEdit={handleEditWebhook}
                     onDelete={handleDeleteWebhook}
+                    onStatusChange={handleStatusChange}
                   />
                 ))}
               </div>
