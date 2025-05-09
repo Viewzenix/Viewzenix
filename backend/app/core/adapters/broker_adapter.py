@@ -4,7 +4,62 @@ Broker adapter interface for the Viewzenix trading webhook platform.
 This module defines the abstract base class for broker adapters.
 """
 from abc import ABC, abstractmethod
-from app.core.models.order import Order, OrderStatus
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional, Dict, Any
+
+
+class OrderSide(Enum):
+    """Order side enumeration."""
+    BUY = "buy"
+    SELL = "sell"
+
+
+class OrderType(Enum):
+    """Order type enumeration."""
+    MARKET = "market"
+    LIMIT = "limit"
+    STOP = "stop"
+    STOP_LIMIT = "stop_limit"
+
+
+class TimeInForce(Enum):
+    """Time in force enumeration."""
+    DAY = "day"
+    GTC = "gtc"  # Good Till Canceled
+    IOC = "ioc"  # Immediate Or Cancel
+    FOK = "fok"  # Fill Or Kill
+
+
+@dataclass
+class Order:
+    """
+    Represents an order ready to be submitted to a broker.
+    """
+    symbol: str
+    side: OrderSide
+    quantity: float
+    order_type: OrderType = OrderType.MARKET
+    price: Optional[float] = None
+    stop_price: Optional[float] = None
+    time_in_force: TimeInForce = TimeInForce.DAY
+    client_order_id: str = None
+
+
+@dataclass
+class OrderStatus:
+    """
+    Represents the status of an order after submission to a broker.
+    """
+    order_id: str
+    status: str
+    symbol: str
+    side: OrderSide
+    quantity: float
+    filled_quantity: float = 0.0
+    average_fill_price: Optional[float] = None
+    error_message: Optional[str] = None
+    is_simulated: bool = False
 
 
 class BrokerError(Exception):
