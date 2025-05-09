@@ -1,11 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+/**
+ * Supabase URL from environment variables
+ * In development, this should be set in .env.local
+ */
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
-// Check if Supabase is properly configured
-export const IS_SUPABASE_CONFIGURED = supabaseUrl !== '' && supabaseKey !== '';
+/**
+ * Supabase anon key from environment variables
+ * In development, this should be set in .env.local
+ */
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+/**
+ * Check if Supabase is configured
+ */
+export const IS_SUPABASE_CONFIGURED = SUPABASE_URL !== '' && SUPABASE_ANON_KEY !== '';
 
 // Warn if Supabase is not configured
 if (typeof window !== 'undefined' && !IS_SUPABASE_CONFIGURED) {
@@ -18,7 +28,17 @@ if (typeof window !== 'undefined' && !IS_SUPABASE_CONFIGURED) {
 /**
  * Create a single Supabase client for the entire app
  */
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    headers: {
+      'x-application-name': 'viewzenix',
+    },
+  },
+});
 
 /**
  * Check if Supabase is available

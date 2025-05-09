@@ -22,6 +22,7 @@ import {
 } from '@/config/api.config';
 
 import { camelToSnake, snakeToCamel, objectToCamelCase, objectToSnakeCase } from '@/utils/caseConversion';
+import { authService } from './auth.service';
 
 /**
  * API client for making HTTP requests to the backend
@@ -104,6 +105,64 @@ async function retryWithBackoff<T>(
     
     return retryWithBackoff(fn, retries - 1, baseDelay);
   }
+}
+
+/**
+ * Base API client with error handling
+ */
+class ApiClient {
+  private readonly baseURL: string;
+  
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+  }
+  
+  /**
+   * Get authentication headers including Supabase JWT
+   */
+  private async getHeaders(): Promise<HeadersInit> {
+    // Default headers
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add auth token if available
+    const token = await authService.getJwtToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
+  }
+  
+  // Update existing HTTP methods to use auth headers
+  async get<T = any>(path: string): Promise<T> {
+    try {
+      const headers = await this.getHeaders();
+      const response = await fetch(`${this.baseURL}${path}`, {
+        method: 'GET',
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new ApiError(
+          response.status,
+          `API Error: ${response.statusText}`,
+          API_ERROR_CODES.UNKNOWN_ERROR,
+          await response.json().catch(() => null)
+        );
+      }
+      
+      return await response.json();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(500, 'Unknown API error');
+    }
+  }
+  
+  // Rest of the existing methods, updated to use getHeaders()...
 }
 
 /**

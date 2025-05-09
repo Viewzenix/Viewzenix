@@ -1,70 +1,169 @@
 # Supabase Frontend Integration Guide
 
-This document outlines the approach and key decisions for integrating Supabase into the Viewzenix frontend, providing real-time updates and offline support.
+## Overview
 
-## 1. Supabase Configuration
+This document provides guidance on integrating Supabase authentication and data services with the Viewzenix frontend application. The implementation includes user authentication, webhook management, and real-time features.
 
-- Installed `@supabase/supabase-js` and created a singleton client in `frontend/src/config/supabase.config.ts`.
-- Environment variables:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Exposed `supabase` client and `isSupabaseAvailable()` helper to check availability.
+## Configuration Setup
 
-## 2. Real-time Subscriptions
+### Environment Variables
 
-- Utilized Supabase Realtime by subscribing to the `webhooks` table:
-  ```ts
-  supabase
-    .channel('webhook-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'webhooks' }, payload => {
-      // payload contains insert/update/delete info
-    })
-    .subscribe();
-  ```
-- On any database change, we fetch the latest records and update local cache.
-- Components subscribe via `webhookService.subscribe(callback)` for immediate UI updates.
+Add the following environment variables to your frontend application:
 
-## 3. CRUD Operations with Fallback
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-- Priority:
-  1. **Supabase** (when available)
-  2. **Traditional API** (fallback)
-  3. **localStorage** (offline)
+### Supabase Client Initialization
 
-- Implemented in `frontend/src/services/webhook.service.ts`:
-  - `getWebhooks()`, `getWebhookById()`
-  - `createWebhook()`, `updateWebhook()`, `deleteWebhook()`
-  - `toggleWebhookActive()`
-- Each method attempts Supabase first, then API, then localStorage.
+The Supabase client is initialized in `src/config/supabase.config.ts`:
 
-## 4. Offline Support Strategy
+```typescript
+import { createClient } from '@supabase/supabase-js';
 
-- On init, client checks availability:
-  - `isSupabaseAvailable()` for Supabase
-  - `isApiAvailable()` for backend API
-- localStorage cache (`viewzenix_webhooks`) serves as persistent storage when offline.
-- User sees existing data instantly, and any operations queue to localStorage until online.
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-## 5. State Management and Subscription
+export const IS_SUPABASE_CONFIGURED = SUPABASE_URL !== '' && SUPABASE_ANON_KEY !== '';
 
-- `WebhookService` maintains an internal array `mockWebhooks` as the single source of truth.
-- Provides a `subscribe(callback)` method for components to listen for changes.
-- After any data mutation (create/update/delete/toggle), the service:
-  1. Updates local cache
-  2. Persists to localStorage
-  3. Notifies all subscribers
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    headers: {
+      'x-application-name': 'viewzenix',
+    },
+  },
+});
+```
 
-## 6. Favicon Support
+## Authentication Implementation
 
-- Added an empty `favicon.ico` in `frontend/public` to prevent 404 errors.
-- Place a production-ready favicon in the same path when available.
+### Authentication Service
 
-## 7. Next Steps
+The authentication service (`src/services/auth.service.ts`) provides an interface for Supabase authentication operations:
 
-- **Testing**: Write unit tests mocking Supabase client and offline fallback.
-- **Error Handling**: Surface user-friendly messages on errors.
-- **Styling**: Update UI to indicate online/offline status.
-- **Documentation**: Update README and CONTRIBUTING guides.
+- `signIn(email, password)`: Sign in with email and password
+- `signUp(email, password)`: Register a new user
+- `signOut()`: Sign out the current user
+- `getSession()`: Get the current session
+- `getJwtToken()`: Get the current JWT token for API requests
+- `resetPassword(email)`: Send password reset email
+- `updatePassword(password)`: Update the user's password
+- `isAuthenticated()`: Check if a user is authenticated
+
+### API Integration with Authentication
+
+All API requests automatically include the authentication token:
+
+```typescript
+// In src/services/api.ts
+private async getHeaders(): Promise<HeadersInit> {
+  // Default headers
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Add auth token if available
+  const token = await authService.getJwtToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+}
+```
+
+## Webhook Management
+
+### Webhook Service
+
+The webhook service has been updated to use Supabase for data storage:
+
+- It first checks if Supabase is configured and available
+- If Supabase is available, it uses the Supabase client for CRUD operations
+- If not, it falls back to localStorage or API calls
+
+### Real-time Updates
+
+Webhook configurations support real-time updates using Supabase's real-time features:
+
+```typescript
+// Initialize real-time subscription
+this.realtimeChannel = supabase
+  .channel('webhook-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'webhooks' }, () => {
+    this.refreshWebhooksFromSupabase();
+  })
+  .subscribe();
+```
+
+## User Interface Integration
+
+### Login and Registration Forms
+
+Authentication UI components should:
+
+1. Use the `authService` for sign-in/sign-up operations
+2. Handle error states from Supabase auth responses
+3. Redirect to secure areas after successful authentication
+
+### Protected Routes
+
+Use authentication checks to protect routes:
+
+```typescript
+// Example protected route component
+const ProtectedRoute = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authenticated = await authService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      setIsLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
+  
+  if (isLoading) return <LoadingScreen />;
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+```
+
+## Error Handling
+
+Handle Supabase-specific errors appropriately:
+
+- Authentication errors (invalid credentials, expired sessions)
+- Data access errors (permissions issues)
+- Network and connectivity issues
+
+## Testing
+
+Test the integration with:
+
+- Unit tests for authentication and data services
+- Integration tests for the full authentication flow
+- Mocking Supabase responses for consistent test results
+
+## Further Considerations
+
+1. **Session Management**: Handle session expiry and token refresh
+2. **User Profile**: Add user profile management if needed
+3. **Permission Control**: Add role-based access control for different user types
+4. **Offline Support**: Consider strategies for offline operation
 
 ---
-*Document generated on {{DATE}} by the Viewzenix frontend integration task.*
+
+This integration guide should be updated as the implementation evolves.
