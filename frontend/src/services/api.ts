@@ -5,8 +5,6 @@ import {
   CreateWebhookResponse,
   UpdateWebhookResponse,
   DeleteWebhookResponse,
-  ApiSuccessResponse,
-  ApiErrorResponse,
   GetAllWebhooksResponse,
   GetWebhookResponse,
   ToggleWebhookResponse
@@ -129,7 +127,10 @@ export async function fetchApi<T>(
   
   // Convert request body from camelCase to snake_case if present
   let body = options.body;
-  if (body && typeof body === 'string') {
+  if (body && typeof body === 'object') {
+    // If body is object, convert keys then stringify
+    body = JSON.stringify(objectToSnakeCase(body));
+  } else if (body && typeof body === 'string') {
     try {
       const parsedBody = JSON.parse(body);
       body = JSON.stringify(objectToSnakeCase(parsedBody));
@@ -259,7 +260,7 @@ export const webhookApi = {
    */
   toggleActive: async (id: string): Promise<ToggleWebhookResponse> => {
     return fetchApi<ToggleWebhookResponse>(API_ENDPOINTS.webhooks.toggle(id), {
-      method: 'POST'
+      method: 'PATCH'
     });
   }
 }; 

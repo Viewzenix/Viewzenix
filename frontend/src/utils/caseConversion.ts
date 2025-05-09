@@ -11,7 +11,10 @@
  * @returns String in snake_case
  */
 export function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  // Insert underscore between lowercase or digit and uppercase, then lowercase entire string
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
 }
 
 /**

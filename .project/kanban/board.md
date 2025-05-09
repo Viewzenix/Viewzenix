@@ -30,3 +30,4 @@
 - TASK-108: Fix React Rendering Errors in Webhook Setup Page (5/9/2025)
 - TASK-109: Fix Server-Side Rendering Compatibility in WebhookService (5/9/2025)
 - TASK-110: Update Backend Controllers for SQLite Compatibility (5/10/2025)
+- VZX-FE-052: Align Toggle Method and Clean Up API Client (5/12/2025)

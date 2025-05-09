@@ -50,4 +50,24 @@ describe('fetchApi function', () => {
       message: 'Bad request'
     });
   });
+
+  test('handles object body and converts keys automatically', async () => {
+    const mockResponse = { status: 'success', data: { test_key: 123 } };
+    // @ts-ignore
+    global.fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(mockResponse) });
+
+    const result = await fetchApi<{ testKey: number }>('/object-test', {
+      method: 'PUT',
+      body: { testKey: 123 }
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/object-test'),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ test_key: 123 })
+      })
+    );
+    expect(result).toEqual({ testKey: 123 });
+  });
 }); 
