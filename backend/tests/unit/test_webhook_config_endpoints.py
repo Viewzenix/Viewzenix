@@ -97,8 +97,8 @@ def test_get_webhook_config(client, sample_config):
 
 def test_get_webhook_config_not_found(client):
     """Test GET /webhooks/{id} with non-existent ID."""
-    # Generate random UUID
-    random_id = uuid.uuid4()
+    # Generate random UUID string
+    random_id = str(uuid.uuid4())
     
     # Send request
     response = client.get(f'/webhooks/{random_id}')
@@ -205,8 +205,8 @@ def test_update_webhook_config(client, sample_config):
 
 def test_update_webhook_config_not_found(client):
     """Test PUT /webhooks/{id} with non-existent ID."""
-    # Generate random UUID
-    random_id = uuid.uuid4()
+    # Generate random UUID string
+    random_id = str(uuid.uuid4())
     
     # Prepare update data
     update_data = {
@@ -250,8 +250,8 @@ def test_delete_webhook_config(client, sample_config):
 
 def test_delete_webhook_config_not_found(client):
     """Test DELETE /webhooks/{id} with non-existent ID."""
-    # Generate random UUID
-    random_id = uuid.uuid4()
+    # Generate random UUID string
+    random_id = str(uuid.uuid4())
     
     # Send request
     response = client.delete(f'/webhooks/{random_id}')
@@ -315,8 +315,8 @@ def test_toggle_webhook_active(client, sample_config):
 
 def test_toggle_webhook_active_not_found(client):
     """Test PATCH /webhooks/{id}/toggle with non-existent ID."""
-    # Generate random UUID
-    random_id = uuid.uuid4()
+    # Generate random UUID string
+    random_id = str(uuid.uuid4())
     
     # Prepare toggle data
     toggle_data = {

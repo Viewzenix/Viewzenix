@@ -7,7 +7,6 @@
 - TASK-004: Design webhook API contract
 
 ## Todo
-- TASK-110: Update Backend Controllers for SQLite Compatibility
 - TASK-111: Implement API Client in Frontend WebhookService
 - TASK-112: Add Database Migration Scripts
 - TASK-113: Create End-to-End Integration Tests
@@ -30,3 +29,4 @@
 - TASK-107: Fix Webhook Status Toggle Functionality (5/9/2025)
 - TASK-108: Fix React Rendering Errors in Webhook Setup Page (5/9/2025)
 - TASK-109: Fix Server-Side Rendering Compatibility in WebhookService (5/9/2025)
+- TASK-110: Update Backend Controllers for SQLite Compatibility (5/10/2025)
