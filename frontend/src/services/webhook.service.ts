@@ -1,386 +1,337 @@
-import { 
-  WebhookConfig, 
-  CreateWebhookConfigData, 
-  UpdateWebhookConfigData,
-  CreateWebhookResponse,
-  UpdateWebhookResponse,
-  DeleteWebhookResponse
-} from '@/types/webhook';
+import { WebhookConfig, CreateWebhookConfigData, UpdateWebhookConfigData, CreateWebhookResponse, UpdateWebhookResponse, DeleteWebhookResponse } from '@/types/webhook';
 import { webhookApi, ApiError, isApiAvailable } from '@/services/api';
 import { USE_API, FORCE_LOCAL_STORAGE } from '@/config/api.config';
+import { supabase, isSupabaseAvailable } from '@/config/supabase.config';
+import { RealtimeChannel, PostgrestError } from '@supabase/supabase-js';
 
-/**
- * Check if code is running in a browser environment
- * @returns boolean indicating if window is defined (client-side)
- */
 const isBrowser = () => typeof window !== 'undefined';
 
 /**
- * Service for managing webhook configurations
- * This service provides CRUD operations for webhook configurations and
- * can use either the backend API or localStorage for data persistence.
+ * Service for managing webhook configurations with Supabase, API, and localStorage fallback.
  */
 class WebhookService {
   private mockWebhooks: WebhookConfig[] = [];
   private readonly STORAGE_KEY = 'viewzenix_webhooks';
   private apiAvailable = false;
+  private supabaseAvailable = false;
+  private realtimeChannel: RealtimeChannel | null = null;
+  private webhooksSubscribers: Set<(webhooks: WebhookConfig[]) => void> = new Set();
 
   constructor() {
-    // Only initialize from localStorage if in browser environment
     if (isBrowser()) {
       this.loadFromStorage();
+      this.initSupabase();
     }
-    
-    // Check API availability asynchronously (client-side only)
     if (isBrowser() && USE_API && !FORCE_LOCAL_STORAGE) {
       this.checkApiAvailability();
     }
   }
 
-  /**
-   * Check if the API is available
-   * This is called automatically on initialization and can be called
-   * manually to refresh the status.
-   */
-  async checkApiAvailability(): Promise<boolean> {
+  /** Initialize Supabase and real-time subscriptions */
+  private async initSupabase(): Promise<void> {
+    if (!isBrowser()) return;
+    this.supabaseAvailable = await isSupabaseAvailable();
+    if (!this.supabaseAvailable) return;
+    this.realtimeChannel = supabase
+      .channel('webhook-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'webhooks' }, () => this.refreshWebhooksFromSupabase())
+      .subscribe();
+  }
+
+  /** Refresh webhooks from Supabase */
+  private async refreshWebhooksFromSupabase(): Promise<void> {
     try {
-      this.apiAvailable = await isApiAvailable();
-      return this.apiAvailable;
-    } catch (error) {
-      console.warn('Error checking API availability:', error);
-      this.apiAvailable = false;
-      return false;
+      const { data, error } = await supabase.from('webhooks').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      const webhooks = data.map(w => this.transformSupabaseWebhook(w));
+      this.mockWebhooks = webhooks;
+      this.saveToStorage();
+      this.notifySubscribers();
+    } catch (e) {
+      console.error('Error refreshing from Supabase:', e);
     }
   }
 
-  /**
-   * Load webhooks from local storage
-   * This initializes with a default webhook if storage is empty
-   */
-  private loadFromStorage(): void {
-    // Skip if not in browser environment
-    if (!isBrowser()) {
-      return;
-    }
+  /** Transform Supabase record to WebhookConfig */
+  private transformSupabaseWebhook(record: any): WebhookConfig {
+    return {
+      id: record.id,
+      name: record.name,
+      description: record.description,
+      webhookUrl: record.webhook_url,
+      securityToken: record.security_token,
+      notificationPreferences: {
+        email: record.notification_preferences.email,
+        browser: record.notification_preferences.browser,
+        onSuccess: record.notification_preferences.on_success,
+        onFailure: record.notification_preferences.on_failure,
+      },
+      isActive: record.is_active,
+      createdAt: record.created_at,
+      updatedAt: record.updated_at,
+    };
+  }
 
+  /** Load from localStorage */
+  private loadFromStorage(): void {
+    if (!isBrowser()) return;
     try {
-      const storedWebhooks = localStorage.getItem(this.STORAGE_KEY);
-      
-      if (storedWebhooks) {
-        this.mockWebhooks = JSON.parse(storedWebhooks);
-      } else {
-        // Initialize with a default webhook if none exist
-        const defaultWebhook: WebhookConfig = {
-          id: '1',
-          name: 'Default Webhook',
-          description: 'Default webhook configuration',
-          webhookUrl: 'https://api.viewzenix.com/webhook/1',
-          securityToken: 'your-secret-token',
-          notificationPreferences: {
-            email: false,
-            browser: true,
-            onSuccess: true,
-            onFailure: true
-          },
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        this.mockWebhooks = [defaultWebhook];
-        this.saveToStorage();
-      }
-    } catch (error) {
-      console.error('Error loading webhooks from localStorage:', error);
-      // Reset to default state
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      this.mockWebhooks = stored ? JSON.parse(stored) : [];
+    } catch {
       this.mockWebhooks = [];
     }
   }
 
-  /**
-   * Save webhooks to local storage
-   */
+  /** Save to localStorage */
   private saveToStorage(): void {
-    // Skip if not in browser environment
-    if (!isBrowser()) {
-      return;
-    }
-
+    if (!isBrowser()) return;
     try {
-      localStorage.setItem(
-        this.STORAGE_KEY, 
-        JSON.stringify(this.mockWebhooks)
-      );
-    } catch (error) {
-      console.error('Error saving webhooks to localStorage:', error);
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.mockWebhooks));
+    } catch {
+      // ignore
     }
   }
 
-  /**
-   * Check if we should use the API or localStorage
-   * This checks both the USE_API flag and the API availability
-   */
-  private shouldUseApi(): boolean {
-    return isBrowser() && USE_API && this.apiAvailable && !FORCE_LOCAL_STORAGE;
+  /** Subscribe to webhook changes */
+  public subscribe(callback: (webhooks: WebhookConfig[]) => void): () => void {
+    this.webhooksSubscribers.add(callback);
+    callback([...this.mockWebhooks]);
+    return () => this.webhooksSubscribers.delete(callback);
   }
 
-  /**
-   * Get all webhook configurations
-   * @returns Promise resolving to array of webhook configurations
-   */
-  async getWebhooks(): Promise<WebhookConfig[]> {
-    if (this.shouldUseApi()) {
+  /** Notify subscribers */
+  private notifySubscribers(): void {
+    const snapshot = [...this.mockWebhooks];
+    this.webhooksSubscribers.forEach(cb => cb(snapshot));
+  }
+
+  /** Check API availability */
+  public async checkApiAvailability(): Promise<boolean> {
+    try {
+      this.apiAvailable = await isApiAvailable();
+    } catch {
+      this.apiAvailable = false;
+    }
+    return this.apiAvailable;
+  }
+
+  /** Should use Supabase? */
+  private shouldUseSupabase(): boolean {
+    return isBrowser() && this.supabaseAvailable;
+  }
+
+  /** Should use API? */
+  private shouldUseApi(): boolean {
+    return isBrowser() && USE_API && this.apiAvailable && !FORCE_LOCAL_STORAGE && !this.shouldUseSupabase();
+  }
+
+  /** Get all webhooks */
+  public async getWebhooks(): Promise<WebhookConfig[]> {
+    if (this.shouldUseSupabase()) {
       try {
-        const response = await webhookApi.getAll();
-        return response.data;
-      } catch (error) {
-        console.error('Failed to fetch webhooks via API:', error);
-        // If API fails, fall back to localStorage
-        console.warn('Falling back to localStorage for webhook retrieval');
-        return this.mockWebhooks;
+        const { data, error } = await supabase.from('webhooks').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          const webhooks = data.map(w => this.transformSupabaseWebhook(w));
+          this.mockWebhooks = webhooks;
+          this.saveToStorage();
+          return webhooks;
+        }
+      } catch {
+        // fallback
+      }
+    } else if (this.shouldUseApi()) {
+      try {
+        const res = await webhookApi.getAll();
+        return res.data;
+      } catch {
+        // fallback
       }
     }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
     return [...this.mockWebhooks];
   }
 
-  /**
-   * Get a specific webhook configuration by ID
-   * @param id Webhook configuration ID
-   * @returns Promise resolving to webhook configuration or null if not found
-   */
-  async getWebhookById(id: string): Promise<WebhookConfig | null> {
-    if (this.shouldUseApi()) {
+  /** Get webhook by ID */
+  public async getWebhookById(id: string): Promise<WebhookConfig | null> {
+    if (this.shouldUseSupabase()) {
       try {
-        const response = await webhookApi.getById(id);
-        return response.data;
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          return null;
-        }
-        
-        console.error('Failed to fetch webhook via API:', error);
-        // If API fails, fall back to localStorage
-        console.warn('Falling back to localStorage for webhook retrieval');
+        const { data, error } = await supabase.from('webhooks').select('*').eq('id', id).single();
+        if (!error && data) return this.transformSupabaseWebhook(data);
+        if ((error as PostgrestError)?.code === 'PGRST116') return null;
+      } catch {
+        // fallback
+      }
+    } else if (this.shouldUseApi()) {
+      try {
+        const res = await webhookApi.getById(id);
+        return res.data;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
       }
     }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const webhook = this.mockWebhooks.find(w => w.id === id);
-    return webhook || null;
+    return this.mockWebhooks.find(w => w.id === id) || null;
   }
 
-  /**
-   * Create a new webhook configuration
-   * @param data Webhook configuration data
-   * @returns Promise resolving to create response with the new webhook
-   */
-  async createWebhook(data: CreateWebhookConfigData): Promise<CreateWebhookResponse> {
-    if (!data.name) {
-      throw new Error('Webhook name is required');
-    }
-
-    if (!data.securityToken) {
-      throw new Error('Security token is required');
-    }
-
-    if (this.shouldUseApi()) {
-      try {
-        return await webhookApi.create(data);
-      } catch (error) {
-        console.error('Failed to create webhook via API:', error);
-        // If API fails, fall back to localStorage
-        console.warn('Falling back to localStorage for webhook creation');
-      }
-    }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Use localStorage with simulated API creation
-    const id = String(this.mockWebhooks.length + 1);
-    const webhook: WebhookConfig = {
-      ...data,
-      id,
-      webhookUrl: `https://api.viewzenix.com/webhook/${id}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    this.mockWebhooks.push(webhook);
-    this.saveToStorage();
-    
-    return {
-      status: 'success',
-      message: 'Webhook configuration created successfully',
-      data: {
-        webhook,
-        success: true
-      }
-    };
-  }
-
-  /**
-   * Update an existing webhook configuration
-   * @param id Webhook configuration ID
-   * @param data Updated webhook configuration data
-   * @returns Promise resolving to update response with the updated webhook
-   */
-  async updateWebhook(id: string, data: UpdateWebhookConfigData): Promise<UpdateWebhookResponse> {
-    if (this.shouldUseApi()) {
-      try {
-        return await webhookApi.update(id, data);
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          throw new Error(`Webhook with ID ${id} not found`);
-        }
-        
-        console.error('Failed to update webhook via API:', error);
-        // If API fails, fall back to localStorage
-        console.warn('Falling back to localStorage for webhook update');
-      }
-    }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Use localStorage with simulated API update
-    const index = this.mockWebhooks.findIndex(w => w.id === id);
-    
-    if (index === -1) {
-      throw new Error(`Webhook with ID ${id} not found`);
-    }
-    
-    const updatedWebhook: WebhookConfig = {
-      ...this.mockWebhooks[index],
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-    
-    this.mockWebhooks[index] = updatedWebhook;
-    this.saveToStorage();
-    
-    return {
-      status: 'success',
-      message: 'Webhook configuration updated successfully',
-      data: {
-        webhook: updatedWebhook,
-        success: true
-      }
-    };
-  }
-
-  /**
-   * Delete a webhook configuration
-   * @param id Webhook configuration ID
-   * @returns Promise resolving to delete response
-   */
-  async deleteWebhook(id: string): Promise<DeleteWebhookResponse> {
-    if (this.shouldUseApi()) {
-      try {
-        return await webhookApi.delete(id);
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          throw new Error(`Webhook with ID ${id} not found`);
-        }
-        
-        console.error('Failed to delete webhook via API:', error);
-        // If API fails, fall back to localStorage
-        console.warn('Falling back to localStorage for webhook deletion');
-      }
-    }
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Use localStorage with simulated API deletion
-    const index = this.mockWebhooks.findIndex(w => w.id === id);
-    
-    if (index === -1) {
-      throw new Error(`Webhook with ID ${id} not found`);
-    }
-    
-    this.mockWebhooks.splice(index, 1);
-    this.saveToStorage();
-    
-    return {
-      status: 'success',
-      message: 'Webhook configuration deleted successfully',
-      data: {
+  /** Create a new webhook */
+  public async createWebhook(data: CreateWebhookConfigData): Promise<CreateWebhookResponse> {
+    if (!data.name || !data.securityToken) throw new Error('Name and security token required');
+    if (this.shouldUseSupabase()) {
+      const id = crypto.randomUUID();
+      const webhookUrl = `https://api.viewzenix.com/webhook/${id}`;
+      const record = {
         id,
-        success: true
-      }
-    };
-  }
-
-  /**
-   * Toggle a webhook's active status
-   * @param id Webhook configuration ID
-   * @param isActive New active status
-   * @returns Promise resolving to updated webhook
-   */
-  async toggleWebhookActive(id: string, isActive: boolean): Promise<WebhookConfig> {
-    if (this.shouldUseApi()) {
+        name: data.name,
+        description: data.description,
+        webhook_url: webhookUrl,
+        security_token: data.securityToken,
+        notification_preferences: {
+          email: data.notificationPreferences.email,
+          browser: data.notificationPreferences.browser,
+          on_success: data.notificationPreferences.onSuccess,
+          on_failure: data.notificationPreferences.onFailure,
+        },
+        is_active: data.isActive,
+      };
       try {
-        const response = await webhookApi.toggleActive(id);
-        return response.data.webhook;
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          throw new Error(`Webhook with ID ${id} not found`);
+        const { data: newRec, error } = await supabase.from('webhooks').insert(record).select('*').single();
+        if (!error && newRec) {
+          const hook = this.transformSupabaseWebhook(newRec);
+          this.mockWebhooks.unshift(hook);
+          this.saveToStorage();
+          this.notifySubscribers();
+          return { status: 'success', message: '', data: { webhook: hook, success: true } };
         }
-        console.error('Failed to toggle webhook status via API:', error);
-        console.warn('Falling back to localStorage for webhook status toggle');
+      } catch {
+        // fallback
+      }
+    } else if (this.shouldUseApi()) {
+      const res = await webhookApi.create(data);
+      if (res.data.webhook) {
+        this.mockWebhooks.unshift(res.data.webhook);
+        this.saveToStorage();
+        this.notifySubscribers();
+      }
+      return res;
+    }
+    const id = crypto.randomUUID();
+    const hook: WebhookConfig = { ...data, id, webhookUrl: `https://api.viewzenix.com/webhook/${id}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    this.mockWebhooks.unshift(hook);
+    this.saveToStorage();
+    this.notifySubscribers();
+    return { status: 'success', message: '', data: { webhook: hook, success: true } };
+  }
+
+  /** Update existing webhook */
+  public async updateWebhook(id: string, data: UpdateWebhookConfigData): Promise<UpdateWebhookResponse> {
+    if (this.shouldUseSupabase()) {
+      const payload = { ...this.transformToSupabaseFormat(data), updated_at: new Date().toISOString() };
+      try {
+        const { data: upd, error } = await supabase.from('webhooks').update(payload).eq('id', id).select('*').single();
+        if (!error && upd) {
+          const hook = this.transformSupabaseWebhook(upd);
+          this.replaceLocal(hook);
+          return { status: 'success', message: '', data: { webhook: hook, success: true } };
+        }
+      } catch {
+        // fallback
+      }
+    } else if (this.shouldUseApi()) {
+      const res = await webhookApi.update(id, data);
+      if (res.data.webhook) this.replaceLocal(res.data.webhook);
+      return res;
+    }
+    const idx = this.mockWebhooks.findIndex(w => w.id === id);
+    if (idx === -1) throw new Error(`Webhook with ID ${id} not found`);
+    const updated: WebhookConfig = { ...this.mockWebhooks[idx], ...data, updatedAt: new Date().toISOString() };
+    this.mockWebhooks[idx] = updated;
+    this.saveToStorage();
+    this.notifySubscribers();
+    return { status: 'success', message: '', data: { webhook: updated, success: true } };
+  }
+
+  /** Delete a webhook */
+  public async deleteWebhook(id: string): Promise<DeleteWebhookResponse> {
+    if (this.shouldUseSupabase()) {
+      try {
+        const { error } = await supabase.from('webhooks').delete().eq('id', id);
+        if (!error) {
+          this.removeLocal(id);
+          return { status: 'success', message: '', data: { id, success: true } };
+        }
+      } catch {
+        // fallback
+      }
+    } else if (this.shouldUseApi()) {
+      const res = await webhookApi.delete(id);
+      this.removeLocal(id);
+      return res;
+    }
+    this.removeLocal(id);
+    return { status: 'success', message: '', data: { id, success: true } };
+  }
+
+  /** Toggle active status */
+  public async toggleWebhookActive(id: string, isActiveOverride?: boolean): Promise<WebhookConfig> {
+    let newState = isActiveOverride;
+    if (newState === undefined) {
+      const hook = await this.getWebhookById(id);
+      if (!hook) throw new Error(`Webhook with ID ${id} not found`);
+      newState = !hook.isActive;
+    }
+    if (this.shouldUseSupabase()) {
+      try {
+        const { data: upd, error } = await supabase.from('webhooks').update({ is_active: newState, updated_at: new Date().toISOString() }).eq('id', id).select('*').single();
+        if (!error && upd) {
+          const hook = this.transformSupabaseWebhook(upd);
+          this.replaceLocal(hook);
+          return hook;
+        }
+      } catch {
+        // fallback
       }
     }
-    
-    // Fall back to using the update method with localStorage
-    const response = await this.updateWebhook(id, { isActive });
-    return response.data.webhook;
-  }
-
-
-  /**
-   * Toggle a webhook's active status (alias for toggleWebhookActive)
-   * @param id Webhook configuration ID
-   * @param isActive New active status
-   * @returns Promise resolving to updated webhook
-   */
-  async toggleWebhookStatus(id: string, isActive: boolean): Promise<WebhookConfig> {
-    return this.toggleWebhookActive(id, isActive);
-  }
-
-  /**
-   * Update a webhook's notification preferences
-   * @param id Webhook configuration ID
-   * @param preferences New notification preferences
-   * @returns Promise resolving to updated webhook
-   */
-  async updateNotificationPreferences(
-    id: string, 
-    preferences: Partial<WebhookConfig['notificationPreferences']>
-  ): Promise<WebhookConfig> {
-    const currentWebhook = await this.getWebhookById(id);
-    if (!currentWebhook) {
-      throw new Error(`Webhook with ID ${id} not found`);
+    if (this.shouldUseApi()) {
+      const hook = (await webhookApi.toggleActive(id)).data.webhook;
+      this.replaceLocal(hook);
+      return hook;
     }
+    const hookFromLocal = await this.updateWebhook(id, { isActive: newState });
+    return hookFromLocal.data.webhook;
+  }
 
-    // Merge current and new preferences, ensuring all required fields are present
-    const updatedPreferences: WebhookConfig['notificationPreferences'] = {
-      ...currentWebhook.notificationPreferences,
-      ...preferences
-    };
+  /** Replace or insert in local cache */
+  private replaceLocal(hook: WebhookConfig) {
+    const idx = this.mockWebhooks.findIndex(w => w.id === hook.id);
+    if (idx !== -1) this.mockWebhooks[idx] = hook;
+    else this.mockWebhooks.unshift(hook);
+    this.saveToStorage();
+    this.notifySubscribers();
+  }
 
-    const response = await this.updateWebhook(id, { 
-      notificationPreferences: updatedPreferences
-    });
-    
-    return response.data.webhook;
+  /** Remove from local cache */
+  private removeLocal(id: string) {
+    this.mockWebhooks = this.mockWebhooks.filter(w => w.id !== id);
+    this.saveToStorage();
+    this.notifySubscribers();
+  }
+
+  /** Transform to Supabase format */
+  private transformToSupabaseFormat(data: Partial<WebhookConfig>): any {
+    const result: any = {};
+    if (data.name !== undefined) result.name = data.name;
+    if (data.description !== undefined) result.description = data.description;
+    if (data.securityToken !== undefined) result.security_token = data.securityToken;
+    if (data.isActive !== undefined) result.is_active = data.isActive;
+    if (data.notificationPreferences) {
+      result.notification_preferences = {
+        email: data.notificationPreferences.email,
+        browser: data.notificationPreferences.browser,
+        on_success: data.notificationPreferences.onSuccess,
+        on_failure: data.notificationPreferences.onFailure,
+      };
+    }
+    return result;
   }
 }
 
-// Export a singleton instance
 export const webhookService = new WebhookService();

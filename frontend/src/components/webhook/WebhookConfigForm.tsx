@@ -1,50 +1,39 @@
-'use client'
+'use client';
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { 
-  FormInput, 
-  FormTextarea, 
-  FormCheckbox, 
-  Button, 
-  StatusMessage,
-  StatusType 
-} from '@/components/common';
 import { CreateWebhookConfigData, WebhookConfig } from '@/types/webhook';
 import { webhookService } from '@/services/webhook.service';
-import styles from './WebhookConfigForm.module.css';
+import {
+  Box,
+  Stack,
+  FormControl,
+  FormLabel,
+  Input,
+  Textarea,
+  Checkbox,
+  Switch,
+  Button,
+  Alert,
+  AlertIcon,
+  FormErrorMessage,
+  HStack,
+  Text,
+} from '@chakra-ui/react';
 
-/**
- * Props for the WebhookConfigForm component
- */
 interface WebhookConfigFormProps {
-  /** Callback function called when a webhook is successfully created or updated */
   onSuccess?: (webhook: WebhookConfig) => void;
-  /** Callback function called when the user cancels the form */
   onCancel?: () => void;
-  /** Default values for the form fields (used for editing existing webhooks) */
   defaultValues?: Partial<WebhookConfig>;
 }
 
-/**
- * A form component for creating or editing webhook configurations
- * 
- * This component handles both creation and editing of webhook configurations:
- * - When defaultValues is provided with an ID, it operates in edit mode
- * - When defaultValues is not provided or has no ID, it operates in create mode
- */
-export function WebhookConfigForm({ 
-  onSuccess, 
-  onCancel,
-  defaultValues 
-}: WebhookConfigFormProps) {
-  // Form state using React Hook Form
-  const { 
-    register, 
-    handleSubmit, 
+export function WebhookConfigForm({ onSuccess, onCancel, defaultValues }: WebhookConfigFormProps) {
+  const {
+    register,
+    handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setValue
+    setValue,
   } = useForm<CreateWebhookConfigData>({
     defaultValues: defaultValues || {
       name: '',
@@ -54,213 +43,99 @@ export function WebhookConfigForm({
         email: true,
         browser: true,
         onSuccess: true,
-        onFailure: true
+        onFailure: true,
       },
-      isActive: true
-    }
+      isActive: true,
+    },
   });
 
-  // Status message state
-  const [status, setStatus] = useState<{
-    type: StatusType;
-    message: string;
-  } | null>(null);
-
-  /**
-   * Determine if we're in edit mode based on the presence of an ID in defaultValues
-   */
+  const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const isEditMode = Boolean(defaultValues && defaultValues.id);
 
-  /**
-   * Form submission handler - handles both creating and updating webhooks
-   */
   const onSubmit = async (data: CreateWebhookConfigData) => {
     try {
-      // Reset any previous status
       setStatus(null);
-      
       let response;
-      let successMessage: string;
-      
-      // Check if we're in edit mode
+      let msg;
       if (isEditMode && defaultValues?.id) {
-        // Update existing webhook
         response = await webhookService.updateWebhook(defaultValues.id, data);
-        successMessage = 'Webhook configuration updated successfully!';
+        msg = 'Webhook updated successfully!';
       } else {
-        // Create new webhook
         response = await webhookService.createWebhook(data);
-        successMessage = 'Webhook configuration created successfully!';
-        
-        // Only reset form after creating new webhook (not when editing)
-        if (!defaultValues) {
-          reset();
-        }
+        msg = 'Webhook created successfully!';
+        if (!defaultValues) reset();
       }
-      
-      // Show success message
-      setStatus({
-        type: 'success',
-        message: successMessage
-      });
-      
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess(response.webhook);
-      }
-    } catch (error) {
-      // Show error message
-      setStatus({
-        type: 'error',
-        message: error instanceof Error 
-          ? error.message 
-          : 'An unexpected error occurred. Please try again.'
-      });
+      setStatus({ type: 'success', message: msg });
+      onSuccess?.(response.data.webhook);
+    } catch (e) {
+      setStatus({ type: 'error', message: (e as Error).message });
     }
   };
 
-  /**
-   * Generate a random security token and update the form field
-   * This uses setValue to properly register the change with React Hook Form
-   */
   const generateSecurityToken = () => {
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let token = '';
-    
-    // Generate a 16-character random token
     for (let i = 0; i < 16; i++) {
-      const randomIndex = Math.floor(Math.random() * charset.length);
-      token += charset[randomIndex];
+      token += chars[Math.floor(Math.random() * chars.length)];
     }
-    
-    // Use setValue to update the form state - this properly registers the change
-    setValue('securityToken', token, { 
-      shouldValidate: true, // Trigger validation
-      shouldDirty: true     // Mark field as dirty (changed)
-    });
+    setValue('securityToken', token, { shouldValidate: true, shouldDirty: true });
   };
 
   return (
-    <div className={styles.formContainer}>
+    <Box bg="white" p={6} rounded="md" boxShadow="md">
       {status && (
-        <StatusMessage 
-          type={status.type} 
-          message={status.message} 
-          onDismiss={() => setStatus(null)}
-        />
+        <Alert status={status.type} mb={4} rounded="md">
+          <AlertIcon />
+          <Text>{status.message}</Text>
+        </Alert>
       )}
-      
-      <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-        <FormInput
-          label="Webhook Name"
-          placeholder="e.g., AAPL Trading Strategy"
-          {...register('name', {
-            required: 'Webhook name is required',
-            maxLength: {
-              value: 100,
-              message: 'Webhook name cannot exceed 100 characters'
-            }
-          })}
-          error={errors.name?.message}
-          helperText="A descriptive name for your webhook configuration"
-        />
-        
-        <FormTextarea
-          label="Description"
-          placeholder="Describe what this webhook is used for..."
-          {...register('description', {
-            maxLength: {
-              value: 500,
-              message: 'Description cannot exceed 500 characters'
-            }
-          })}
-          error={errors.description?.message}
-          helperText="Optional description to help you identify this webhook"
-        />
-        
-        <div className={styles.securityTokenContainer}>
-          <FormInput
-            label="Security Token / Passphrase"
-            id="input-security-token"
-            placeholder="Enter a secure passphrase..."
-            {...register('securityToken', {
-              required: 'Security token is required',
-              minLength: {
-                value: 8,
-                message: 'Security token must be at least 8 characters'
-              }
-            })}
-            error={errors.securityToken?.message}
-            helperText="This token will be used to authenticate webhook requests from TradingView"
-          />
-          <Button 
-            type="button" 
-            variant="secondary" 
-            size="sm" 
-            className={styles.generateButton}
-            onClick={generateSecurityToken}
-          >
-            Generate
+      <Stack as="form" spacing={4} onSubmit={handleSubmit(onSubmit)}>
+        <FormControl isInvalid={!!errors.name}>
+          <FormLabel>Name</FormLabel>
+          <Input placeholder="Webhook name" {...register('name', { required: 'Required', maxLength: { value: 100, message: 'Max 100 chars' } })} />
+          <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
+        </FormControl>
+        <FormControl isInvalid={!!errors.description}>
+          <FormLabel>Description</FormLabel>
+          <Textarea placeholder="Description" {...register('description', { maxLength: { value: 500, message: 'Max 500 chars' } })} />
+          <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
+        </FormControl>
+        <FormControl isInvalid={!!errors.securityToken}>
+          <FormLabel>Security Token</FormLabel>
+          <HStack>
+            <Input placeholder="Secure token" {...register('securityToken', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} />
+            <Button onClick={generateSecurityToken} size="sm" variant="outline">
+              Generate
+            </Button>
+          </HStack>
+          <FormErrorMessage>{errors.securityToken?.message}</FormErrorMessage>
+        </FormControl>
+        <FormControl>
+          <FormLabel>Notification Preferences</FormLabel>
+          <HStack>
+            <Checkbox {...register('notificationPreferences.email')}>Email</Checkbox>
+            <Checkbox {...register('notificationPreferences.browser')}>Browser</Checkbox>
+            <Checkbox {...register('notificationPreferences.onSuccess')}>On Success</Checkbox>
+            <Checkbox {...register('notificationPreferences.onFailure')}>On Failure</Checkbox>
+          </HStack>
+        </FormControl>
+        <FormControl display="flex" alignItems="center">
+          <FormLabel htmlFor="isActive" mb="0">
+            Active
+          </FormLabel>
+          <Switch id="isActive" {...register('isActive')} />
+        </FormControl>
+        <HStack spacing={4} pt={4}>
+          <Button colorScheme="brand" type="submit" isLoading={isSubmitting}>
+            {isEditMode ? 'Update' : 'Create'}
           </Button>
-        </div>
-        
-        <div className={styles.divider}>
-          <span>Notification Preferences</span>
-        </div>
-        
-        <div className={styles.checkboxGroup}>
-          <FormCheckbox
-            label="Email Notifications"
-            {...register('notificationPreferences.email')}
-            helperText="Receive email notifications for webhook events"
-          />
-          
-          <FormCheckbox
-            label="Browser Notifications"
-            {...register('notificationPreferences.browser')}
-            helperText="Receive browser notifications for webhook events"
-          />
-          
-          <FormCheckbox
-            label="Notify on Success"
-            {...register('notificationPreferences.onSuccess')}
-            helperText="Get notified when webhook execution succeeds"
-          />
-          
-          <FormCheckbox
-            label="Notify on Failure"
-            {...register('notificationPreferences.onFailure')}
-            helperText="Get notified when webhook execution fails"
-          />
-        </div>
-        
-        <FormCheckbox
-          label="Active"
-          {...register('isActive')}
-          helperText="Webhook is enabled and will process incoming requests"
-        />
-        
-        <div className={styles.formActions}>
           {onCancel && (
-            <Button 
-              type="button" 
-              variant="secondary" 
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
+            <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
           )}
-          
-          <Button 
-            type="submit" 
-            isLoading={isSubmitting}
-            disabled={isSubmitting}
-          >
-            {isEditMode ? 'Update Webhook' : 'Create Webhook'}
-          </Button>
-        </div>
-      </form>
-    </div>
+        </HStack>
+      </Stack>
+    </Box>
   );
 }
