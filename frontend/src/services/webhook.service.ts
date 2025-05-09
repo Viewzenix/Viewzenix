@@ -309,7 +309,8 @@ class WebhookService {
       }
     }
     if (this.shouldUseApi()) {
-      const hook = (await webhookApi.toggleActive(id)).data.webhook;
+      const res = await webhookApi.toggleActive(id, newState!);
+      const hook = res.data.webhook;
       this.replaceLocal(hook);
       return hook;
     }

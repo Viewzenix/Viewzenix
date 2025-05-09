@@ -179,7 +179,7 @@ export async function fetchApi<T>(
     ...(options.headers || {}),
   };
   // Inject Authorization header if token is present
-  const token = process.env.NEXT_PUBLIC_API_TOKEN || (typeof window !== 'undefined' ? localStorage.getItem('api_token') : null);
+  const token = await authService.getJwtToken();
   if (token) {
     (headers as any)['Authorization'] = `Bearer ${token}`;
   }
@@ -317,9 +317,10 @@ export const webhookApi = {
   /**
    * Toggle webhook active status
    */
-  toggleActive: async (id: string): Promise<ToggleWebhookResponse> => {
+  toggleActive: async (id: string, isActive: boolean): Promise<ToggleWebhookResponse> => {
     return fetchApi<ToggleWebhookResponse>(API_ENDPOINTS.webhooks.toggle(id), {
-      method: 'PATCH'
+      method: 'PATCH',
+      body: JSON.stringify({ isActive })
     });
   }
 }; 
