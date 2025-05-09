@@ -1,5 +1,5 @@
 # Project Kanban Board
-> Last updated: 2024-05-10
+> Last updated: 2024-05-15
 
 ## 📋 Backlog
 
@@ -12,8 +12,9 @@
 
 *Tasks ready to be worked on, prioritized and scheduled for the current sprint/cycle.*
 
-- [TASK-106: Update WebhookService to integrate with backend API](../tasks/frontend/TASK-106.md) `integration` `api` `frontend` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+- [TASK-106: Update WebhookService to integrate with backend API](../tasks/frontend/TASK-106.md) `integration` `api` `frontend` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) (Blocked by TASK-008)
 - [TASK-007: Implement webhook history tracking](../tasks/backend/TASK-007.md) `api` `database` `backend` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
+- [TASK-008: Implement Webhook Configuration Management Endpoints](../tasks/backend/TASK-008.md) `api` `flask` `webhook` `integration` ![Priority: High](https://img.shields.io/badge/Priority-High-orange)
 
 ## ⏳ In Progress
 
@@ -22,6 +23,8 @@
 ## 🔎 Review
 
 *Tasks completed and awaiting review/testing.*
+
+- [TASK-008: Implement Webhook Configuration Management Endpoints](../tasks/backend/TASK-008.md) `api` `database` `webhook` `rest` `crud` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-11)
 
 ## ✅ Done (Last 7 days)
 

@@ -18,6 +18,10 @@ class Config:
     # Logging settings
     LOG_LEVEL = logging.INFO
     
+    # Database settings
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///viewzenix.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
     # Application settings
     WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE') or 'dev-passphrase'
     
@@ -45,6 +49,7 @@ class TestingConfig(Config):
     DEBUG = True
     LOG_LEVEL = logging.DEBUG
     # Use in-memory database for testing
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
 
 
 class ProductionConfig(Config):
