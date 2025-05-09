@@ -14,12 +14,25 @@ import { CreateWebhookConfigData, WebhookConfig } from '@/types/webhook';
 import { webhookService } from '@/services/webhook.service';
 import styles from './WebhookConfigForm.module.css';
 
+/**
+ * Props for the WebhookConfigForm component
+ */
 interface WebhookConfigFormProps {
+  /** Callback function called when a webhook is successfully created or updated */
   onSuccess?: (webhook: WebhookConfig) => void;
+  /** Callback function called when the user cancels the form */
   onCancel?: () => void;
-  defaultValues?: Partial<CreateWebhookConfigData>;
+  /** Default values for the form fields (used for editing existing webhooks) */
+  defaultValues?: Partial<WebhookConfig>;
 }
 
+/**
+ * A form component for creating or editing webhook configurations
+ * 
+ * This component handles both creation and editing of webhook configurations:
+ * - When defaultValues is provided with an ID, it operates in edit mode
+ * - When defaultValues is not provided or has no ID, it operates in create mode
+ */
 export function WebhookConfigForm({ 
   onSuccess, 
   onCancel,
@@ -30,7 +43,8 @@ export function WebhookConfigForm({
     register, 
     handleSubmit, 
     formState: { errors, isSubmitting },
-    reset 
+    reset,
+    setValue
   } = useForm<CreateWebhookConfigData>({
     defaultValues: defaultValues || {
       name: '',
@@ -52,25 +66,43 @@ export function WebhookConfigForm({
     message: string;
   } | null>(null);
 
-  // Form submission handler
+  /**
+   * Determine if we're in edit mode based on the presence of an ID in defaultValues
+   */
+  const isEditMode = Boolean(defaultValues && defaultValues.id);
+
+  /**
+   * Form submission handler - handles both creating and updating webhooks
+   */
   const onSubmit = async (data: CreateWebhookConfigData) => {
     try {
       // Reset any previous status
       setStatus(null);
       
-      // Call service to create webhook
-      const response = await webhookService.createWebhook(data);
+      let response;
+      let successMessage: string;
+      
+      // Check if we're in edit mode
+      if (isEditMode && defaultValues?.id) {
+        // Update existing webhook
+        response = await webhookService.updateWebhook(defaultValues.id, data);
+        successMessage = 'Webhook configuration updated successfully!';
+      } else {
+        // Create new webhook
+        response = await webhookService.createWebhook(data);
+        successMessage = 'Webhook configuration created successfully!';
+        
+        // Only reset form after creating new webhook (not when editing)
+        if (!defaultValues) {
+          reset();
+        }
+      }
       
       // Show success message
       setStatus({
         type: 'success',
-        message: 'Webhook configuration created successfully!'
+        message: successMessage
       });
-      
-      // Reset form if not provided with default values (creation mode)
-      if (!defaultValues) {
-        reset();
-      }
       
       // Call onSuccess callback if provided
       if (onSuccess) {
@@ -87,7 +119,10 @@ export function WebhookConfigForm({
     }
   };
 
-  // Generate a random security token
+  /**
+   * Generate a random security token and update the form field
+   * This uses setValue to properly register the change with React Hook Form
+   */
   const generateSecurityToken = () => {
     const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let token = '';
@@ -98,11 +133,11 @@ export function WebhookConfigForm({
       token += charset[randomIndex];
     }
     
-    // Set the value in the form
-    const tokenInput = document.getElementById('input-security-token') as HTMLInputElement;
-    if (tokenInput) {
-      tokenInput.value = token;
-    }
+    // Use setValue to update the form state - this properly registers the change
+    setValue('securityToken', token, { 
+      shouldValidate: true, // Trigger validation
+      shouldDirty: true     // Mark field as dirty (changed)
+    });
   };
 
   return (
@@ -222,7 +257,7 @@ export function WebhookConfigForm({
             isLoading={isSubmitting}
             disabled={isSubmitting}
           >
-            {defaultValues ? 'Update Webhook' : 'Create Webhook'}
+            {isEditMode ? 'Update Webhook' : 'Create Webhook'}
           </Button>
         </div>
       </form>

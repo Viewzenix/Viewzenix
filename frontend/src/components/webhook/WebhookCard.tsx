@@ -10,13 +10,22 @@ interface WebhookCardProps {
   webhook: WebhookConfig;
   onDelete: (id: string) => void;
   onEdit: (webhook: WebhookConfig) => void;
+  onStatusChange?: (webhook: WebhookConfig) => void;
 }
 
-export function WebhookCard({ webhook, onDelete, onEdit }: WebhookCardProps) {
+export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: WebhookCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle keyboard events for accessibility
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleToggleActive();
+    }
+  };
 
   // Toggle active status
   const handleToggleActive = async () => {
@@ -24,13 +33,17 @@ export function WebhookCard({ webhook, onDelete, onEdit }: WebhookCardProps) {
       setIsLoading(true);
       setError(null);
       
-      await webhookService.toggleWebhookStatus(webhook.id, !webhook.isActive);
+      const updatedWebhook = await webhookService.toggleWebhookStatus(webhook.id, !webhook.isActive);
       
-      // This would normally update the webhook in real app through context/state management
-      // For demo, we're reloading the page after a delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Use callback if provided, otherwise fallback to page reload
+      if (onStatusChange) {
+        onStatusChange(updatedWebhook);
+      } else {
+        // Fallback to reload for backwards compatibility
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update webhook status');
     } finally {
@@ -65,7 +78,16 @@ export function WebhookCard({ webhook, onDelete, onEdit }: WebhookCardProps) {
       <div className={styles.header}>
         <div className={styles.titleWrapper}>
           <h3 className={styles.title}>{webhook.name}</h3>
-          <div className={`${styles.statusBadge} ${webhook.isActive ? styles.active : styles.inactive}`}>
+          <div 
+            className={`${styles.statusBadge} ${webhook.isActive ? styles.active : styles.inactive}`}
+            onClick={handleToggleActive}
+            onKeyDown={handleKeyDown}
+            title={`Click to ${webhook.isActive ? 'deactivate' : 'activate'} webhook`}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: 'pointer' }}
+            aria-label={`Webhook is ${webhook.isActive ? 'active' : 'inactive'}. Click to ${webhook.isActive ? 'deactivate' : 'activate'}.`}
+          >
             {webhook.isActive ? 'Active' : 'Inactive'}
           </div>
         </div>
