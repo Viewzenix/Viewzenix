@@ -7,17 +7,17 @@
 - TASK-004: Design webhook API contract
 
 ## Todo
-- TASK-008: Implement Webhook Configuration Management Endpoints
 
 ## In Progress
 
 ## Blocked
-- TASK-106: WebhookService Backend Integration (Blocked by TASK-008)
+- TASK-106: WebhookService Backend Integration
 
 ## Review
 - TASK-105: Implement Webhook Setup UI
 
 ## Done
+- TASK-008: Implement Webhook Configuration Management Endpoints (2025-06-05)
 - TASK-100: Create WebhookService with localStorage persistence
 - TASK-101: Implement TradingView webhook receiver endpoint
 - TASK-102: Create webhook validation middleware

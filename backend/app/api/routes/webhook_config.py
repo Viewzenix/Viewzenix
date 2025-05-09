@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify, current_app, url_for
 from typing import Dict, Any, Tuple, List, Optional
 from sqlalchemy.exc import IntegrityError
 import uuid
+from datetime import datetime
 
 from app.extensions import db
 from app.utils.logging_bus import LoggingBus, sanitize_log_data
@@ -58,6 +59,16 @@ WEBHOOK_CONFIG_UPDATE_SCHEMA = {
                 "onFailure": {"type": "boolean"}
             }
         },
+        "isActive": {"type": "boolean"}
+    },
+    "additionalProperties": False
+}
+
+# WebhookConfig toggle schema for validation
+WEBHOOK_CONFIG_TOGGLE_SCHEMA = {
+    "type": "object",
+    "required": ["isActive"],
+    "properties": {
         "isActive": {"type": "boolean"}
     },
     "additionalProperties": False
@@ -367,4 +378,72 @@ def delete_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
             "status": "error",
             "code": "SERVER_ERROR",
             "message": "An unexpected error occurred deleting the webhook configuration"
+        }), 500
+
+
+@webhook_config_bp.route('/<uuid:id>/toggle', methods=['PATCH'])
+@validate_schema(WEBHOOK_CONFIG_TOGGLE_SCHEMA)
+def toggle_webhook_active(id: uuid.UUID) -> Tuple[Any, int]:
+    """
+    Toggle a webhook configuration's active status.
+    
+    Args:
+        id: UUID of the webhook configuration
+        
+    Returns:
+        JSON response with the updated webhook configuration
+    """
+    try:
+        # Query the webhook configuration
+        webhook_config = WebhookConfig.query.get(id)
+        
+        # Check if webhook configuration exists
+        if not webhook_config:
+            return jsonify({
+                "status": "error",
+                "code": "NOT_FOUND",
+                "message": f"Webhook configuration with id {id} not found"
+            }), 404
+        
+        # Get request data
+        data = request.get_json()
+        
+        # Update active status
+        webhook_config.is_active = data['isActive']
+        
+        # Update timestamp
+        webhook_config.updated_at = datetime.utcnow()
+        
+        # Commit the changes
+        db.session.commit()
+        
+        # Convert to dictionary
+        config = webhook_config.to_dict()
+        
+        # Log the toggle
+        status = "activated" if webhook_config.is_active else "deactivated"
+        logger.info(f"Webhook configuration {status}: {webhook_config.id}",
+                   extra={"webhook_id": str(webhook_config.id), "is_active": webhook_config.is_active})
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Webhook configuration {status} successfully",
+            "data": {
+                "webhook": config,
+                "success": True
+            }
+        }), 200
+        
+    except Exception as e:
+        # Roll back the session
+        db.session.rollback()
+        
+        # Log the error
+        logger.error(f"Error toggling webhook configuration: {str(e)}", exc_info=True)
+        
+        # Return error response
+        return jsonify({
+            "status": "error",
+            "code": "SERVER_ERROR",
+            "message": "An unexpected error occurred toggling the webhook configuration status"
         }), 500

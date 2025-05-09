@@ -263,3 +263,100 @@ def test_delete_webhook_config_not_found(client):
     assert response.status_code == 404
     assert data['status'] == 'error'
     assert data['code'] == 'NOT_FOUND'
+
+
+def test_toggle_webhook_active(client, sample_config):
+    """Test PATCH /webhooks/{id}/toggle endpoint."""
+    # Initial status is active (True)
+    assert sample_config.is_active is True
+    
+    # Prepare toggle data (to inactive)
+    toggle_data = {
+        "isActive": False
+    }
+    
+    # Send request
+    response = client.patch(
+        f'/webhooks/{sample_config.id}/toggle',
+        data=json.dumps(toggle_data),
+        content_type='application/json'
+    )
+    
+    # Parse response
+    data = json.loads(response.data)
+    
+    # Assertions for turning off
+    assert response.status_code == 200
+    assert data['status'] == 'success'
+    assert data['data']['webhook']['isActive'] is False
+    assert data['data']['success'] is True
+    
+    # Now toggle back to active
+    toggle_data = {
+        "isActive": True
+    }
+    
+    # Send request
+    response = client.patch(
+        f'/webhooks/{sample_config.id}/toggle',
+        data=json.dumps(toggle_data),
+        content_type='application/json'
+    )
+    
+    # Parse response
+    data = json.loads(response.data)
+    
+    # Assertions for turning on
+    assert response.status_code == 200
+    assert data['status'] == 'success'
+    assert data['data']['webhook']['isActive'] is True
+    assert data['data']['success'] is True
+
+
+def test_toggle_webhook_active_not_found(client):
+    """Test PATCH /webhooks/{id}/toggle with non-existent ID."""
+    # Generate random UUID
+    random_id = uuid.uuid4()
+    
+    # Prepare toggle data
+    toggle_data = {
+        "isActive": False
+    }
+    
+    # Send request
+    response = client.patch(
+        f'/webhooks/{random_id}/toggle',
+        data=json.dumps(toggle_data),
+        content_type='application/json'
+    )
+    
+    # Parse response
+    data = json.loads(response.data)
+    
+    # Assertions
+    assert response.status_code == 404
+    assert data['status'] == 'error'
+    assert data['code'] == 'NOT_FOUND'
+
+
+def test_toggle_webhook_active_invalid(client, sample_config):
+    """Test PATCH /webhooks/{id}/toggle with invalid data."""
+    # Prepare invalid toggle data (missing isActive)
+    toggle_data = {
+        "active": False  # Wrong field name
+    }
+    
+    # Send request
+    response = client.patch(
+        f'/webhooks/{sample_config.id}/toggle',
+        data=json.dumps(toggle_data),
+        content_type='application/json'
+    )
+    
+    # Parse response
+    data = json.loads(response.data)
+    
+    # Assertions
+    assert response.status_code == 400
+    assert data['status'] == 'error'
+    assert 'VALIDATION_ERROR' in data['code']
