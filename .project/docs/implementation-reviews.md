@@ -180,6 +180,36 @@ After reviewing both the frontend and backend implementations, they appear to be
 1. Update `webhookApi.toggleActive` in `frontend/src/services/api.ts` to use `PATCH` instead of `POST`.
 2. Wrap the `notification_preferences` default in `backend/app/core/models/webhook_config.py` with a `lambda` (e.g., `default=lambda: {...}`) to avoid shared mutable defaults.
 3. Remove unused `ApiSuccessResponse` and `ApiErrorResponse` imports from `frontend/src/services/api.ts`.
+
+## Critical Integration Gap (2025-05-09)
+
+Manual testing has revealed a critical integration gap in the application: **the frontend and backend are completely disconnected**. While the UI appears functional to users, it is operating exclusively on localStorage with no actual API calls to the backend.
+
+### Key Issues
+1. **No API Calls**: Despite code improvements in both frontend and backend, no HTTP requests are made from frontend to backend for any webhook operations
+2. **Offline Functionality**: All webhook functionality (create, edit, delete, toggle) continues to work even when the backend server is stopped
+3. **Exclusively Using localStorage**: The frontend is storing and managing all webhook data solely in browser localStorage
+4. **Incomplete Implementation**: The frontend has been prepared for API integration (improved API client, proper case conversion), but the actual connection is missing
+
+### Required Integration Steps
+
+#### Frontend Requirements
+1. Update WebhookService to perform actual HTTP requests to backend endpoints
+2. Maintain localStorage as fallback when API calls fail
+3. Fix state management in WebhookSetupPage to properly update UI after operations
+4. Implement proper error handling for backend unavailability
+
+#### Backend Requirements
+1. Implement missing CRUD endpoints for webhook configuration management:
+   - GET /webhooks - List all webhook configurations
+   - GET /webhooks/{id} - Get a specific webhook configuration
+   - POST /webhooks - Create a new webhook configuration
+   - PUT/PATCH /webhooks/{id} - Update a webhook configuration
+   - DELETE /webhooks/{id} - Delete a webhook configuration
+2. Ensure UUID/ID handling is consistent between models and routes
+3. Implement proper error handling for all endpoints
+
+This integration gap is the highest priority issue to address before the application can be considered production-ready.
 4. Enhance `fetchApi` in `frontend/src/services/api.ts` to convert object bodies to snake_case when `options.body` is an object (not just when it's a string).
 5. (Optional) Consider trimming leading underscores in `camelToSnake` to avoid prefixes like `_hello_world` when converting strings starting with uppercase letters.
  

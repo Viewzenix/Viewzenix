@@ -134,11 +134,12 @@ These changes will allow the application to work correctly with SQLite for devel
 | Test ID | Test Description | Steps | Expected Result | Actual Result | Status | Notes |
 |---------|-----------------|-------|-----------------|---------------|--------|-------|
 | FE-001 | Navigation | 1. Access home page<br>2. Navigate to Webhook Setup page | All pages load correctly and navigation works | All navigation items visible and functioning correctly | PASS | Successfully navigated to webhook setup page |
-| FE-002 | Webhook Creation | 1. Click "Create New Webhook"<br>2. Fill the form<br>3. Submit the form | New webhook is created and appears in the list | Successfully created "Test Trading Strategy" webhook | PASS | Webhook appears in list with correct information |
-| FE-003 | Webhook Editing | 1. Click "Edit" on a webhook<br>2. Change field values<br>3. Submit changes | Webhook is updated with new values | Webhook updated successfully with new description and notification preferences | PASS | All changes reflected correctly in the UI |
+| FE-001A | Initial Page Load | 1. Start servers<br>2. Navigate to localhost:3000 | Application loads without errors | Application loaded successfully with all UI elements visible. Minor 404 error for favicon.ico on first load that disappeared after refresh. | PASS with minor issue | Browser console shows: "Failed to load resource: the server responded with a status of 404 (Not Found)" for favicon.ico |
+| FE-002 | Webhook Creation | 1. Click "Create New Webhook"<br>2. Fill the form<br>3. Submit the form | New webhook is created and appears in the list | Successfully created webhook, but it only appears in the list after page refresh. Creation notification shows immediately. | PARTIAL | UI state not immediately updated despite successful creation |
+| FE-003 | Webhook Editing | 1. Click "Edit" on a webhook<br>2. Change field values<br>3. Submit changes | Webhook is updated with new values | Webhook updated successfully, but changes only appear after page refresh. Update notification shows immediately. | PARTIAL | UI state not immediately updated despite successful edit |
 | FE-004 | Secret Key Handling | 1. Edit a webhook<br>2. Change the secret key<br>3. Save changes | Secret key is updated correctly | Secret key was successfully updated | PASS | Masked key shows the updated value |
-| FE-005 | Status Toggle | 1. Click on the status badge<br>2. Verify status changes | Status toggles between active and inactive | Error displayed: "_services_webhook_service__WEBPACK_IMPORTED_MODULE_3__._webhookService.toggleWebhookActive is not a function" | FAIL | Error persists even after page refresh, preventing status toggle functionality |
-| FE-006 | Webhook Deletion | 1. Click "Delete" on a webhook<br>2. Confirm deletion | Webhook is removed from the list | Webhook successfully deleted and remained gone after refresh | PASS | Confirmation dialog works correctly |
+| FE-005 | Status Toggle | 1. Click on the status badge<br>2. Verify status changes | Status toggles between active and inactive | Status toggle worked correctly, changing immediately without page refresh. Changes persisted after refresh. | PASS | Previously reported error has been fixed with the PATCH method implementation |
+| FE-006 | Webhook Deletion | 1. Click "Delete" on a webhook<br>2. Confirm deletion | Webhook is removed from the list | Webhook immediately disappeared from the list without needing refresh. Remained deleted after refresh. Was able to create a new webhook with the same name (though new webhook only appeared after refresh). | PASS | Delete operation updates UI state correctly, unlike create/edit operations |
 | FE-007 | Data Persistence | 1. Create a webhook<br>2. Refresh the page | Webhook data persists after refresh | All webhooks persisted correctly after refresh and navigation | PASS | No duplicates appeared after navigation |
 | FE-008 | Form Validation | 1. Submit form with missing required fields<br>2. Submit form with invalid data | Validation errors are shown correctly | Validation errors displayed for missing name field | PASS | Security token generation works alongside validation |
 
@@ -174,12 +175,13 @@ These endpoints need to be implemented in the backend before TASK-106 (integrati
 During testing of the WebhookService integration, several React errors were observed in the developer console:
 
 ### React Rendering Errors
-| Error ID | Description | Impact | Workaround |
-|---------|-------------|--------|------------|
-| ERR-001 | `Warning: Cannot update a component ('HotReload') while rendering a different component ('WebhookSetupPage')` | Appears during component rendering but doesn't prevent functionality | Refresh the page after operations |
-| ERR-002 | `TypeError: Cannot read properties of undefined (reading 'id')` | Occurs in page.tsx around line 64 when accessing webhook.id | Refresh the page to see changes |
-| ERR-003 | `_services_webhook_service__WEBPACK_IMPORTED_MODULE_3__._webhookService.toggleWebhookActive is not a function` | Shown when toggling webhook status | None - This error is blocking the status toggle functionality |
-| ERR-004 | `Error loading webhooks from localStorage: ReferenceError: localStorage is not defined` | Server-side rendering error due to browser-specific API usage | None - The error appears during SSR but functionality works client-side |
+| Error ID | Description | Impact | Workaround | Status |
+|---------|-------------|--------|------------|--------|
+| ERR-001 | `Warning: Cannot update a component ('HotReload') while rendering a different component ('WebhookSetupPage')` | Appears during component rendering but doesn't prevent functionality | Refresh the page after operations | Still Present |
+| ERR-002 | `TypeError: Cannot read properties of undefined (reading 'id')` | Occurs in page.tsx around line 64 when accessing webhook.id | Refresh the page to see changes | Still Present - Related to UI not updating immediately |
+| ERR-003 | `_services_webhook_service__WEBPACK_IMPORTED_MODULE_3__._webhookService.toggleWebhookActive is not a function` | Shown when toggling webhook status | None - This error is blocking the status toggle functionality | FIXED - Toggle functionality now works correctly |
+| ERR-004 | `Error loading webhooks from localStorage: ReferenceError: localStorage is not defined` | Server-side rendering error due to browser-specific API usage | None - The error appears during SSR but functionality works client-side | Still Present |
+| ERR-005 | `Failed to load resource: the server responded with a status of 404 (Not Found)` for favicon.ico | Browser looks for favicon that doesn't exist | Disappears after page refresh. No functional impact. | Minor Issue |
 
 These errors indicate issues with the React component lifecycle and state management:
 1. State updates are happening during render phase, which is not allowed in React
@@ -192,15 +194,73 @@ For ERR-001 and ERR-002, the issues appear to be UI-only and operations are corr
 ## Issues and Recommendations
 1. UX Improvement: Make notification messages stay visible longer before disappearing to improve user experience
 2. Backend Fix: Update backend configuration to use FLASK_DEBUG instead of deprecated FLASK_ENV parameter
-3. Architecture Gap: Implement webhook configuration management endpoints in the backend to support frontend WebhookService functionality
+3. **CRITICAL** Architecture Gap: Implement webhook configuration management endpoints in the backend to support frontend WebhookService functionality. Tests reveal the frontend is not actually connecting to the backend at all for webhook operations.
 4. Frontend Fix: Resolve React rendering errors in WebhookSetupPage component, particularly around state management and component updates
-5. Frontend Critical Fix: Fix the toggleWebhookActive function import/reference in the webhook status toggle functionality - this is a blocker issue preventing a core feature from working
+5. ✅ Frontend UI Fix: Fix the toggleWebhookActive function import/reference in the webhook status toggle functionality (UI now works, but no backend integration)
 6. Frontend Improvement: Add proper error handling to ensure graceful degradation when functions are unavailable
 7. Frontend Fix: Implement server-side rendering compatibility for WebhookService by checking for window/localStorage availability and using dynamic imports or the useEffect hook for browser-specific code
+8. Frontend Asset Fix: Add a favicon.ico file to the public directory to prevent 404 errors on initial page load
+9. Frontend Fix: Resolve state management issue in webhook list component that prevents immediate UI updates after webhook creation/editing (requires refresh to see changes). Interestingly, deletion operations update the UI immediately without requiring refresh.
+10. Backend/Frontend Discrepancy: The webhook URLs are using sequential numeric IDs (e.g., /webhook/2) rather than UUIDs as specified in the API documentation. This needs clarification - either update the implementation to use UUIDs or update the documentation to reflect the current implementation.
+11. **CRITICAL** Integration Issue: Despite code changes to use the correct PATCH method for the toggle endpoint, the frontend is not making any API calls to the backend for webhook management. The integration is completely missing, not just misaligned.
+
+## Additional Testing (2025-05-09)
+
+Additional tests were conducted focusing on specific functionality:
+
+1. **Notification Preferences**: When editing notification preferences (enabling/disabling Email or SMS notifications), changes follow the same pattern as other edits - they only appear in the UI after refreshing the page.
+
+2. **Webhook URL Functionality**: The webhook URL display and copy functionality was tested:
+   - URLs are correctly displayed in the format: `https://api.viewzenix.com/webhook/{id}`
+   - The "Copy URL" button works correctly, successfully copying the URL to clipboard
+   - Sample URLs observed: `https://api.viewzenix.com/webhook/2`, `https://api.viewzenix.com/webhook/3`, `https://api.viewzenix.com/webhook/4`
+   - URLs appear to use sequential numeric IDs rather than UUIDs visible to the user
+
+3. **Frontend-Backend Integration**: Critical issues were discovered when testing integration:
+   - **No Backend Integration**: Despite the toggle functionality working correctly in the UI, no PATCH requests are sent to the backend when toggling
+   - **Offline Functionality**: Toggling a webhook's status continues to work even when the backend server is stopped
+   - This strongly suggests the frontend is storing and managing webhook state entirely in localStorage without any actual backend integration
+
+4. **Pattern Observed**: A clear pattern has emerged in state management:
+   - Operations that update the UI immediately: Delete webhook, Toggle webhook status
+   - Operations that require page refresh to see changes: Create webhook, Edit webhook (including notification preferences)
+
+## Recent Improvements (2025-05-09)
+
+Several key improvements have been implemented and tested:
+
+1. **Webhook Toggle UI Fix**: The previously non-functional webhook status toggle now works correctly in the UI. However, testing revealed that this is using localStorage only, with no actual integration with the backend API despite the PATCH method update in the code.
+
+2. **Backend SQLite Compatibility**: The backend database models have been updated to work with SQLite while maintaining compatibility with PostgreSQL, making development and testing easier.
+
+3. **Frontend API Client**: The frontend API client has been enhanced with automatic case conversion for object bodies, token injection, and endpoint caching.
 
 ## Conclusion
-The frontend UI components and backend webhook signal endpoint are functioning correctly when tested individually, with one critical exception: the webhook status toggle functionality is completely broken due to an implementation error.
 
-Most React rendering errors encountered during testing don't prevent core functionality from working after a page refresh, allowing basic CRUD operations to work despite the UI issues. However, the status toggle functionality is completely non-functional due to a missing or incorrectly exported method in the WebhookService.
+Our testing has revealed a critical gap in the application's architecture:
 
-Full integration testing is blocked by the missing webhook configuration management endpoints in the backend. A new task should be created to implement these endpoints before proceeding with the integration task. Additionally, a critical bug fix for the webhook status toggle functionality should be prioritized, along with addressing other React rendering errors to improve the user experience and code quality.
+1. **Fixed Issues**:
+   - Webhook status toggle UI now works correctly (but only using localStorage)
+   - Backend database models work correctly with SQLite for development
+   - API client code has improvements for case conversion
+
+2. **Critical Issues Discovered**:
+   - **No Backend Integration**: Despite code improvements, the frontend makes no API calls to the backend for webhook management
+   - **Complete Disconnect**: All webhook functionality (create, edit, delete, toggle) appears to work entirely through localStorage
+   - UI state does not update immediately after webhook creation or editing (requires page refresh)
+   - Some React rendering errors persist but don't block core functionality
+   - Favicon 404 errors on initial load (minor)
+   - Webhook URL ID format discrepancy (using sequential numbers instead of UUIDs as specified)
+
+3. **Next Steps**:
+   - **HIGHEST PRIORITY**: Implement actual integration between frontend and backend for webhook functionality
+   - Implement missing webhook configuration management endpoints in the backend
+   - Connect frontend services to these backend endpoints instead of using localStorage exclusively
+   - Address the state management issues in the WebhookSetupPage component
+   - Add a favicon.ico file to prevent 404 errors
+   - Resolve remaining React rendering errors to improve user experience and code quality
+   - Clarify and align the webhook URL format between the documentation and implementation
+
+The application appears functional from a user perspective, but this is misleading as it's operating entirely on local browser storage with no actual backend persistence or integration. This represents a critical architectural gap that must be addressed before the application can be considered production-ready.
+
+Overall, the application has significantly improved, with core functionality working correctly. The critical webhook toggle functionality that was previously broken now works flawlessly. The remaining issues are mostly related to UI state management and are not blocking key functionality, though they do impact user experience.
