@@ -3,7 +3,7 @@
 **Priority:** High
 **Type:** Integration
 **Assignee:** @frontend-agent
-**Status:** Todo
+**Status:** Todo (Blocked)
 
 ## Description
 
@@ -11,7 +11,7 @@ Now that both the frontend webhook form and backend webhook endpoint have been i
 
 ## Context
 
-The frontend currently has a mock WebhookService that simulates API calls with setTimeout. The backend has implemented a fully functional webhook endpoint that can receive and process webhook requests. We need to connect these two components to enable real functionality.
+The frontend currently has a mock WebhookService that simulates API calls with setTimeout. The backend has implemented a fully functional webhook endpoint that can receive and process webhook requests, but is missing the webhook configuration management endpoints needed by the WebhookService. We need to wait for these endpoints to be implemented before integrating the frontend WebhookService with the backend.
 
 ## Acceptance Criteria
 
@@ -28,15 +28,19 @@ The frontend currently has a mock WebhookService that simulates API calls with s
 - Frontend webhook form implementation (TASK-105) - Completed
 - Backend webhook endpoint implementation (TASK-002) - Completed
 - Backend order processing implementation (TASK-006) - Completed
+- Backend webhook configuration management endpoints (TASK-008) - **Not Started/Blocked**
 
 ## Resources
 
 - Backend API documentation (when available)
 - Current WebhookService implementation
 - Backend webhook route implementation
+- Manual testing report with architectural gap documentation
 
 ## Notes
 
+- The backend currently only has an endpoint for receiving trading signals, but lacks webhook configuration management endpoints needed by the frontend
+- Integration cannot proceed until TASK-008 is completed to implement the missing backend endpoints
 - The backend expects specific fields in the webhook payload, including passphrase, ticker, and action
 - Error handling should account for different types of errors (validation errors, server errors, network errors)
 - Consider adding a configuration file for environment-specific settings (dev, staging, prod)
