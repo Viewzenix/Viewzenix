@@ -1,68 +1,52 @@
 """
 Alpaca broker adapter for the Viewzenix trading webhook platform.
 
-This module implements the broker adapter interface for Alpaca.
+This module implements the broker adapter interface for Alpaca,
+with a mock implementation that doesn't require the alpaca-trade-api.
 """
-from typing import Dict, Any
-import alpaca_trade_api as tradeapi
+import uuid
+import json
+import time
+from typing import Dict, Any, Optional
+import logging
+import os
 from flask import current_app
 
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
 from app.utils.logging_bus import LoggingBus
-from app.core.models.order import Order, OrderStatus
-from app.core.models.trade import OrderSide, OrderType, TimeInForce
 from app.core.adapters.broker_adapter import (
-    BrokerAdapter, BrokerError, BrokerConnectionError, OrderSubmissionError
+    BrokerAdapter, Order, OrderStatus, OrderSide, OrderType, TimeInForce,
+    BrokerError, BrokerConnectionError, OrderSubmissionError
 )
 
 
 class AlpacaAdapter(BrokerAdapter):
-    """Adapter for the Alpaca trading API."""
+    """
+    Mock adapter for the Alpaca trading API.
+    
+    This implementation simulates interaction with the Alpaca API
+    without requiring the alpaca-trade-api package.
+    """
     
     def __init__(self):
         """Initialize the Alpaca adapter."""
         self.logger = LoggingBus(__name__)
-        self._api = None
-    
-    @property
-    def api(self) -> tradeapi.REST:
-        """
-        Get the Alpaca API client, initializing if needed.
-        
-        Returns:
-            Configured Alpaca API client
-        
-        Raises:
-            BrokerConnectionError: If API initialization fails
-        """
-        if self._api is None:
-            try:
-                self._api = tradeapi.REST(
-                    key_id=current_app.config['ALPACA_API_KEY'],
-                    secret_key=current_app.config['ALPACA_API_SECRET'],
-                    base_url=current_app.config['ALPACA_API_URL']
-                )
-                self.logger.info(
-                    "Alpaca API initialized",
-                    extra={"api_url": current_app.config['ALPACA_API_URL']}
-                )
-            except Exception as e:
-                self.logger.error(
-                    f"Failed to initialize Alpaca API: {str(e)}", 
-                    exc_info=True
-                )
-                raise BrokerConnectionError(f"Failed to connect to Alpaca: {str(e)}") from e
-        
-        return self._api
+        self._orders = {}  # In-memory store for simulated orders
     
     def submit_order(self, order: Order) -> OrderStatus:
         """
-        Submit an order to Alpaca.
+        Submit an order to Alpaca (simulated).
         
         Args:
             order: Order to submit
             
         Returns:
-            Order status from Alpaca
+            Simulated order status
             
         Raises:
             BrokerConnectionError: If connection to Alpaca fails
@@ -78,71 +62,42 @@ class AlpacaAdapter(BrokerAdapter):
                     "side": order.side.value,
                     "quantity": order.quantity,
                     "order_type": order.order_type.value,
-                    "client_order_id": order.client_order_id
+                    "client_order_id": order.client_order_id or "none"
                 }
             )
             
-            # Prepare order parameters
-            order_params = {
-                "symbol": order.symbol,
-                "qty": order.quantity,
-                "side": order.side.value,
-                "type": order.order_type.value,
-                "time_in_force": order.time_in_force.value,
-                "client_order_id": order.client_order_id
-            }
+            # Generate a unique order ID
+            order_id = f"alpaca-mock-{uuid.uuid4()}"
             
-            # Add conditional parameters
-            if order.price is not None:
-                order_params["limit_price"] = order.price
-                
-            if order.stop_price is not None:
-                order_params["stop_price"] = order.stop_price
-                
-            if order.take_profit_price is not None:
-                order_params["take_profit"] = {"limit_price": order.take_profit_price}
-                
-            if order.stop_loss_price is not None:
-                order_params["stop_loss"] = {"stop_price": order.stop_loss_price}
+            # Create simulated order status
+            status = OrderStatus(
+                order_id=order_id,
+                status="filled",  # Simulating immediate fill
+                symbol=order.symbol,
+                side=order.side,
+                quantity=float(order.quantity),
+                filled_quantity=float(order.quantity),  # Simulating complete fill
+                average_fill_price=order.price or 100.0,  # Mock price if not provided
+                is_simulated=True
+            )
             
-            # Submit order to Alpaca
-            alpaca_order = self.api.submit_order(**order_params)
+            # Store the order in memory for later retrieval
+            self._orders[order_id] = status
             
             # Log success
             self.logger.info(
-                f"Order submitted successfully: {alpaca_order.id}",
+                f"Order submitted successfully (simulated): {order_id}",
                 extra={
-                    "order_id": alpaca_order.id,
-                    "status": alpaca_order.status,
+                    "order_id": order_id,
+                    "status": status.status,
                     "symbol": order.symbol
                 }
             )
             
-            # Convert to our OrderStatus model
-            return OrderStatus(
-                order_id=alpaca_order.id,
-                status=alpaca_order.status,
-                symbol=order.symbol,
-                side=order.side,
-                quantity=float(order.quantity),
-                filled_quantity=float(alpaca_order.filled_qty) if hasattr(alpaca_order, 'filled_qty') else 0.0,
-                average_fill_price=float(alpaca_order.filled_avg_price) if hasattr(alpaca_order, 'filled_avg_price') and alpaca_order.filled_avg_price else None
-            )
-            
-        except tradeapi.rest.APIError as e:
-            error_msg = f"Alpaca API error: {str(e)}"
-            self.logger.error(
-                error_msg,
-                extra={
-                    "symbol": order.symbol,
-                    "side": order.side.value,
-                    "error_code": getattr(e, 'code', 'unknown')
-                }
-            )
-            raise OrderSubmissionError(error_msg) from e
+            return status
             
         except Exception as e:
-            error_msg = f"Unexpected error submitting order to Alpaca: {str(e)}"
+            error_msg = f"Error in mock Alpaca adapter: {str(e)}"
             self.logger.error(
                 error_msg,
                 extra={"symbol": order.symbol},
@@ -152,35 +107,27 @@ class AlpacaAdapter(BrokerAdapter):
     
     def get_order_status(self, order_id: str) -> OrderStatus:
         """
-        Get order status from Alpaca.
+        Get order status from Alpaca (simulated).
         
         Args:
             order_id: Alpaca order ID
             
         Returns:
-            Current order status
+            Simulated order status
             
         Raises:
-            BrokerConnectionError: If connection to Alpaca fails
-            BrokerError: For other Alpaca-related errors
+            BrokerError: If order is not found
         """
         try:
-            # Get order from Alpaca
-            alpaca_order = self.api.get_order(order_id)
+            # Try to retrieve the order from memory
+            if order_id in self._orders:
+                return self._orders[order_id]
             
-            # Convert to our OrderStatus model
-            return OrderStatus(
-                order_id=alpaca_order.id,
-                status=alpaca_order.status,
-                symbol=alpaca_order.symbol,
-                side=OrderSide.BUY if alpaca_order.side == 'buy' else OrderSide.SELL,
-                quantity=float(alpaca_order.qty),
-                filled_quantity=float(alpaca_order.filled_qty) if hasattr(alpaca_order, 'filled_qty') else 0.0,
-                average_fill_price=float(alpaca_order.filled_avg_price) if hasattr(alpaca_order, 'filled_avg_price') and alpaca_order.filled_avg_price else None
-            )
+            # Order not found, create a simulated error response
+            raise BrokerError(f"Order {order_id} not found")
             
         except Exception as e:
-            error_msg = f"Failed to get order status from Alpaca: {str(e)}"
+            error_msg = f"Failed to get order status (simulated): {str(e)}"
             self.logger.error(
                 error_msg,
                 extra={"order_id": order_id},
@@ -190,7 +137,7 @@ class AlpacaAdapter(BrokerAdapter):
     
     def cancel_order(self, order_id: str) -> bool:
         """
-        Cancel an order with Alpaca.
+        Cancel an order with Alpaca (simulated).
         
         Args:
             order_id: Alpaca order ID
@@ -199,37 +146,52 @@ class AlpacaAdapter(BrokerAdapter):
             True if cancellation succeeded, False otherwise
             
         Raises:
-            BrokerConnectionError: If connection to Alpaca fails
             BrokerError: For other Alpaca-related errors
         """
         try:
-            # Attempt to cancel the order
-            self.api.cancel_order(order_id)
-            
-            # Log success
-            self.logger.info(f"Order {order_id} canceled successfully")
-            
-            return True
-            
-        except tradeapi.rest.APIError as e:
-            # If order is already filled/canceled, that's not an error
-            if hasattr(e, 'code') and e.code == 404:
-                self.logger.warning(f"Order {order_id} not found for cancellation, may be already filled or canceled")
-                return False
+            # Try to retrieve and cancel the order from memory
+            if order_id in self._orders:
+                # Update the order status to canceled
+                self._orders[order_id].status = "canceled"
                 
-            # Other API errors
-            error_msg = f"Alpaca API error canceling order: {str(e)}"
-            self.logger.error(
-                error_msg,
-                extra={"order_id": order_id}
-            )
-            raise BrokerError(error_msg) from e
+                # Log success
+                self.logger.info(f"Order {order_id} canceled successfully (simulated)")
+                
+                return True
+            
+            # Order not found
+            self.logger.warning(f"Order {order_id} not found for cancellation (simulated)")
+            return False
             
         except Exception as e:
-            error_msg = f"Unexpected error canceling order with Alpaca: {str(e)}"
+            error_msg = f"Error canceling order (simulated): {str(e)}"
             self.logger.error(
                 error_msg,
                 extra={"order_id": order_id},
                 exc_info=True
             )
             raise BrokerError(error_msg) from e
+    
+    def _simulate_real_request(self, endpoint: str, method: str = 'GET', data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Simulate a request to the Alpaca API.
+        
+        This is a placeholder for future implementation if requests package is available.
+        
+        Args:
+            endpoint: API endpoint
+            method: HTTP method
+            data: Request payload
+            
+        Returns:
+            Simulated response
+            
+        Raises:
+            BrokerConnectionError: If requests package is not available
+        """
+        if not REQUESTS_AVAILABLE:
+            raise BrokerConnectionError("requests package is required for real API calls")
+        
+        # This would be the real implementation using requests
+        # For now, return a simulated response
+        return {"status": "success", "message": "This is a simulated response"}
