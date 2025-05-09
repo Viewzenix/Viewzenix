@@ -6,7 +6,7 @@ in the database. The model corresponds to the webhook_configs table.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy.types import JSON
+from sqlalchemy.types import Uuid, JSON
 
 from app.extensions import db
 
@@ -21,7 +21,7 @@ class WebhookConfig(db.Model):
     __tablename__ = 'webhook_configs'
     
     # Primary key - Using database-agnostic Uuid type with as_uuid=False for SQLite compatibility
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(Uuid(as_uuid=False, native_uuid=True), primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Basic information
     name = db.Column(db.String(255), nullable=False)
