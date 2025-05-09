@@ -25,41 +25,56 @@ let mockWebhooks: WebhookConfig[] = [
 ];
 
 export const handlers = [
+  // API Health check endpoint
+  http.get('/health', () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+
   // Get all webhooks
-  http.get('/api/webhooks', () => {
-    return HttpResponse.json(mockWebhooks);
+  http.get('/webhooks', () => {
+    return HttpResponse.json({
+      status: 'success',
+      data: mockWebhooks
+    });
   }),
 
   // Get webhook by ID
-  http.get('/api/webhooks/:id', ({ params }) => {
+  http.get('/webhooks/:id', ({ params }) => {
     const { id } = params;
     const webhook = mockWebhooks.find(w => w.id === id);
     
     if (!webhook) {
       return HttpResponse.json(
-        { error: { message: 'Webhook not found' } },
+        { 
+          status: 'error',
+          code: 'NOT_FOUND',
+          message: `Webhook configuration with id ${id} not found` 
+        },
         { status: 404 }
       );
     }
     
-    return HttpResponse.json(webhook);
+    return HttpResponse.json({
+      status: 'success',
+      data: webhook
+    });
   }),
 
   // Create webhook
-  http.post('/api/webhooks', async ({ request }) => {
+  http.post('/webhooks', async ({ request }) => {
     const data = await request.json() as CreateWebhookConfigData;
     
     // Validate required fields
     if (!data.name || !data.securityToken) {
       return HttpResponse.json(
         { 
-          error: { 
-            message: 'Name and security token are required',
-            fields: {
-              name: !data.name ? 'Name is required' : undefined,
-              securityToken: !data.securityToken ? 'Security token is required' : undefined
-            }
-          } 
+          status: 'error',
+          code: 'VALIDATION_ERROR',
+          message: 'Validation error',
+          details: {
+            name: !data.name ? 'Name is required' : undefined,
+            securityToken: !data.securityToken ? 'Security token is required' : undefined
+          }
         },
         { status: 400 }
       );
@@ -82,15 +97,19 @@ export const handlers = [
     
     return HttpResponse.json(
       { 
-        webhook: newWebhook,
-        success: true
+        status: 'success',
+        message: 'Webhook configuration created successfully',
+        data: {
+          webhook: newWebhook,
+          success: true
+        }
       },
       { status: 201 }
     );
   }),
 
   // Update webhook
-  http.put('/api/webhooks/:id', async ({ params, request }) => {
+  http.put('/webhooks/:id', async ({ params, request }) => {
     const { id } = params;
     const data = await request.json() as UpdateWebhookConfigData;
     
@@ -98,7 +117,11 @@ export const handlers = [
     
     if (index === -1) {
       return HttpResponse.json(
-        { error: { message: 'Webhook not found' } },
+        { 
+          status: 'error',
+          code: 'NOT_FOUND',
+          message: `Webhook configuration with id ${id} not found` 
+        },
         { status: 404 }
       );
     }
@@ -112,21 +135,29 @@ export const handlers = [
     
     return HttpResponse.json(
       { 
-        webhook: mockWebhooks[index],
-        success: true
+        status: 'success',
+        message: 'Webhook configuration updated successfully',
+        data: {
+          webhook: mockWebhooks[index],
+          success: true
+        }
       }
     );
   }),
 
   // Delete webhook
-  http.delete('/api/webhooks/:id', ({ params }) => {
+  http.delete('/webhooks/:id', ({ params }) => {
     const { id } = params;
     
     const index = mockWebhooks.findIndex(w => w.id === id);
     
     if (index === -1) {
       return HttpResponse.json(
-        { error: { message: 'Webhook not found' } },
+        { 
+          status: 'error',
+          code: 'NOT_FOUND',
+          message: `Webhook configuration with id ${id} not found` 
+        },
         { status: 404 }
       );
     }
@@ -136,8 +167,12 @@ export const handlers = [
     
     return HttpResponse.json(
       { 
-        id,
-        success: true
+        status: 'success',
+        message: 'Webhook configuration deleted successfully',
+        data: {
+          id,
+          success: true
+        }
       }
     );
   }),
