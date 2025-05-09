@@ -6,84 +6,123 @@ import {
   UpdateWebhookResponse,
   DeleteWebhookResponse
 } from '@/types/webhook';
+import { webhookApi, ApiError, USE_API, FORCE_LOCAL_STORAGE, isApiAvailable } from '@/services/api';
 
 /**
  * Service for managing webhook configurations
  * This service provides CRUD operations for webhook configurations and
- * uses localStorage for data persistence between sessions.
+ * can use either the backend API or localStorage for data persistence.
  */
 class WebhookService {
   private mockWebhooks: WebhookConfig[] = [];
   private readonly STORAGE_KEY = 'viewzenix_webhooks';
+  private apiAvailable = false;
 
   constructor() {
+    // Initialize from localStorage if not using API
     this.loadFromStorage();
+    
+    // Check API availability asynchronously
+    if (USE_API && !FORCE_LOCAL_STORAGE) {
+      this.checkApiAvailability();
+    }
+  }
+
+  /**
+   * Check if the API is available
+   * This is called automatically on initialization and can be called
+   * manually to refresh the status.
+   */
+  async checkApiAvailability(): Promise<boolean> {
+    try {
+      this.apiAvailable = await isApiAvailable();
+      return this.apiAvailable;
+    } catch (error) {
+      console.warn('Error checking API availability:', error);
+      this.apiAvailable = false;
+      return false;
+    }
   }
 
   /**
    * Load webhooks from local storage
-   * This initializes with a default webhook if storage is empty for demonstration purposes.
-   * In a production environment, this would connect to a backend API.
+   * This initializes with a default webhook if storage is empty
    */
   private loadFromStorage(): void {
-    if (typeof window === 'undefined') return; // Skip on server-side
-
     try {
-      const storedData = localStorage.getItem(this.STORAGE_KEY);
-      if (storedData) {
-        this.mockWebhooks = JSON.parse(storedData);
+      const storedWebhooks = localStorage.getItem(this.STORAGE_KEY);
+      
+      if (storedWebhooks) {
+        this.mockWebhooks = JSON.parse(storedWebhooks);
       } else {
-        // Initialize with default webhook if storage is empty (for demonstration)
-        this.mockWebhooks = [
-          {
-            id: 'webhook-1',
-            name: 'AAPL Trading Strategy',
-            description: 'TradingView alerts for Apple stock',
-            webhookUrl: 'https://api.viewzenix.com/webhook/user123/apple',
-            securityToken: 'abc123xyz789',
-            notificationPreferences: {
-              email: true,
-              browser: true,
-              onSuccess: true,
-              onFailure: true
-            },
-            isActive: true,
-            createdAt: '2024-05-01T12:00:00Z',
-            updatedAt: '2024-05-05T15:30:00Z'
-          }
-        ];
+        // Initialize with a default webhook if none exist
+        const defaultWebhook: WebhookConfig = {
+          id: '1',
+          name: 'Default Webhook',
+          description: 'Default webhook configuration',
+          webhookUrl: 'https://api.viewzenix.com/webhook/1',
+          securityToken: 'your-secret-token',
+          notificationPreferences: {
+            email: false,
+            browser: true,
+            onSuccess: true,
+            onFailure: true
+          },
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        this.mockWebhooks = [defaultWebhook];
         this.saveToStorage();
       }
     } catch (error) {
-      console.error('Failed to load webhooks from storage:', error);
-      // Initialize with empty array in case of error
+      console.error('Error loading webhooks from localStorage:', error);
+      // Reset to default state
       this.mockWebhooks = [];
     }
   }
 
   /**
    * Save webhooks to local storage
-   * This persists the current state of webhooks between page refreshes.
    */
   private saveToStorage(): void {
-    if (typeof window === 'undefined') return; // Skip on server-side
-
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.mockWebhooks));
+      localStorage.setItem(
+        this.STORAGE_KEY, 
+        JSON.stringify(this.mockWebhooks)
+      );
     } catch (error) {
-      console.error('Failed to save webhooks to storage:', error);
-      // If localStorage is not available or quota exceeded, we could implement a fallback
-      // For example, using sessionStorage or notifying the user about the storage issue
+      console.error('Error saving webhooks to localStorage:', error);
     }
   }
 
   /**
-   * Get all webhook configurations for the current user
+   * Check if we should use the API or localStorage
+   * This checks both the USE_API flag and the API availability
+   */
+  private shouldUseApi(): boolean {
+    return USE_API && this.apiAvailable && !FORCE_LOCAL_STORAGE;
+  }
+
+  /**
+   * Get all webhook configurations
    * @returns Promise resolving to array of webhook configurations
    */
   async getWebhooks(): Promise<WebhookConfig[]> {
+    if (this.shouldUseApi()) {
+      try {
+        return await webhookApi.getAll();
+      } catch (error) {
+        console.error('Failed to fetch webhooks via API:', error);
+        // If API fails, fall back to localStorage
+        console.warn('Falling back to localStorage for webhook retrieval');
+        return this.mockWebhooks;
+      }
+    }
+    
     // Simulate API delay
-    await this.delay(800);
+    await new Promise(resolve => setTimeout(resolve, 300));
     return [...this.mockWebhooks];
   }
 
@@ -93,14 +132,25 @@ class WebhookService {
    * @returns Promise resolving to webhook configuration or null if not found
    */
   async getWebhookById(id: string): Promise<WebhookConfig | null> {
-    if (!id) {
-      throw new Error('Webhook ID is required');
+    if (this.shouldUseApi()) {
+      try {
+        return await webhookApi.getById(id);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return null;
+        }
+        
+        console.error('Failed to fetch webhook via API:', error);
+        // If API fails, fall back to localStorage
+        console.warn('Falling back to localStorage for webhook retrieval');
+      }
     }
-
+    
     // Simulate API delay
-    await this.delay(500);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     const webhook = this.mockWebhooks.find(w => w.id === id);
-    return webhook ? { ...webhook } : null;
+    return webhook || null;
   }
 
   /**
@@ -117,63 +167,89 @@ class WebhookService {
       throw new Error('Security token is required');
     }
 
-    // Simulate API delay
-    await this.delay(1000);
+    if (this.shouldUseApi()) {
+      try {
+        return await webhookApi.create(data);
+      } catch (error) {
+        console.error('Failed to create webhook via API:', error);
+        // If API fails, fall back to localStorage
+        console.warn('Falling back to localStorage for webhook creation');
+      }
+    }
     
-    // Generate a new webhook with default values and provided data
-    const newWebhook: WebhookConfig = {
-      id: `webhook-${Date.now()}`,
-      webhookUrl: `https://api.viewzenix.com/webhook/user123/${data.name.toLowerCase().replace(/\s+/g, '-')}`,
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Use localStorage with simulated API creation
+    const id = String(this.mockWebhooks.length + 1);
+    const webhook: WebhookConfig = {
+      ...data,
+      id,
+      webhookUrl: `https://api.viewzenix.com/webhook/${id}`,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data
+      updatedAt: new Date().toISOString()
     };
     
-    // Add to mock data and persist
-    this.mockWebhooks.push(newWebhook);
+    this.mockWebhooks.push(webhook);
     this.saveToStorage();
     
     return {
-      webhook: newWebhook,
-      success: true
+      status: 'success',
+      message: 'Webhook configuration created successfully',
+      data: {
+        webhook,
+        success: true
+      }
     };
   }
 
   /**
    * Update an existing webhook configuration
    * @param id Webhook configuration ID
-   * @param data Updated webhook data
+   * @param data Updated webhook configuration data
    * @returns Promise resolving to update response with the updated webhook
    */
   async updateWebhook(id: string, data: UpdateWebhookConfigData): Promise<UpdateWebhookResponse> {
-    if (!id) {
-      throw new Error('Webhook ID is required');
+    if (this.shouldUseApi()) {
+      try {
+        return await webhookApi.update(id, data);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error(`Webhook with ID ${id} not found`);
+        }
+        
+        console.error('Failed to update webhook via API:', error);
+        // If API fails, fall back to localStorage
+        console.warn('Falling back to localStorage for webhook update');
+      }
     }
-
-    // Simulate API delay
-    await this.delay(800);
     
-    // Find webhook index
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Use localStorage with simulated API update
     const index = this.mockWebhooks.findIndex(w => w.id === id);
     
     if (index === -1) {
       throw new Error(`Webhook with ID ${id} not found`);
     }
     
-    // Update webhook
     const updatedWebhook: WebhookConfig = {
       ...this.mockWebhooks[index],
       ...data,
       updatedAt: new Date().toISOString()
     };
     
-    // Update in mock data and persist
     this.mockWebhooks[index] = updatedWebhook;
     this.saveToStorage();
     
     return {
-      webhook: updatedWebhook,
-      success: true
+      status: 'success',
+      message: 'Webhook configuration updated successfully',
+      data: {
+        webhook: updatedWebhook,
+        success: true
+      }
     };
   }
 
@@ -183,86 +259,82 @@ class WebhookService {
    * @returns Promise resolving to delete response
    */
   async deleteWebhook(id: string): Promise<DeleteWebhookResponse> {
-    if (!id) {
-      throw new Error('Webhook ID is required');
+    if (this.shouldUseApi()) {
+      try {
+        return await webhookApi.delete(id);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error(`Webhook with ID ${id} not found`);
+        }
+        
+        console.error('Failed to delete webhook via API:', error);
+        // If API fails, fall back to localStorage
+        console.warn('Falling back to localStorage for webhook deletion');
+      }
     }
-
-    // Simulate API delay
-    await this.delay(700);
     
-    // Find webhook index
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Use localStorage with simulated API deletion
     const index = this.mockWebhooks.findIndex(w => w.id === id);
     
     if (index === -1) {
       throw new Error(`Webhook with ID ${id} not found`);
     }
     
-    // Remove from mock data and persist
     this.mockWebhooks.splice(index, 1);
     this.saveToStorage();
     
     return {
-      id,
-      success: true
+      status: 'success',
+      message: 'Webhook configuration deleted successfully',
+      data: {
+        id,
+        success: true
+      }
     };
   }
 
   /**
-   * Toggle webhook active status
+   * Toggle a webhook's active status
    * @param id Webhook configuration ID
    * @param isActive New active status
    * @returns Promise resolving to updated webhook
    */
-  async toggleWebhookStatus(id: string, isActive: boolean): Promise<WebhookConfig> {
-    if (!id) {
-      throw new Error('Webhook ID is required');
-    }
+  async toggleWebhookActive(id: string, isActive: boolean): Promise<WebhookConfig> {
+    const response = await this.updateWebhook(id, { isActive });
+    return response.data.webhook;
+  }
 
-    // Simulate API delay
-    await this.delay(500);
+  /**
+   * Update a webhook's notification preferences
+   * @param id Webhook configuration ID
+   * @param preferences New notification preferences
+   * @returns Promise resolving to updated webhook
+   */
+  async updateNotificationPreferences(
+    id: string, 
+    preferences: Partial<WebhookConfig['notificationPreferences']>
+  ): Promise<WebhookConfig> {
+    const webhook = await this.getWebhookById(id);
     
-    // Find webhook index
-    const index = this.mockWebhooks.findIndex(w => w.id === id);
-    
-    if (index === -1) {
+    if (!webhook) {
       throw new Error(`Webhook with ID ${id} not found`);
     }
     
-    // Update status
-    const updatedWebhook: WebhookConfig = {
-      ...this.mockWebhooks[index],
-      isActive,
-      updatedAt: new Date().toISOString()
+    const updatedPreferences = {
+      ...webhook.notificationPreferences,
+      ...preferences
     };
     
-    // Update in mock data and persist
-    this.mockWebhooks[index] = updatedWebhook;
-    this.saveToStorage();
+    const response = await this.updateWebhook(id, { 
+      notificationPreferences: updatedPreferences 
+    });
     
-    return updatedWebhook;
-  }
-
-  /**
-   * Clear all stored webhooks (useful for testing or reset)
-   * @returns Promise resolving when all webhooks are cleared
-   */
-  async clearAllWebhooks(): Promise<void> {
-    // Simulate API delay
-    await this.delay(500);
-    
-    this.mockWebhooks = [];
-    this.saveToStorage();
-  }
-
-  /**
-   * Helper to simulate API delay
-   * @param ms Milliseconds to delay
-   * @returns Promise that resolves after the delay
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return response.data.webhook;
   }
 }
 
-// Export singleton instance
+// Export a singleton instance
 export const webhookService = new WebhookService();
