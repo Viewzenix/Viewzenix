@@ -2,6 +2,7 @@ import { WebhookConfig, CreateWebhookConfigData, UpdateWebhookConfigData, Create
 import { webhookApi, ApiError, isApiAvailable } from '@/services/api';
 import { USE_API, FORCE_LOCAL_STORAGE } from '@/config/api.config';
 import { supabase, isSupabaseAvailable } from '@/config/supabase.config';
+import { DB_TABLES } from '@/constants/database';
 import { RealtimeChannel, PostgrestError } from '@supabase/supabase-js';
 
 const isBrowser = () => typeof window !== 'undefined';
@@ -52,14 +53,14 @@ class WebhookService {
     if (!this.supabaseAvailable) return;
     this.realtimeChannel = supabase
       .channel('webhook-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'webhooks' }, () => this.refreshWebhooksFromSupabase())
+      .on('postgres_changes', { event: '*', schema: 'public', table: DB_TABLES.WEBHOOKS }, () => this.refreshWebhooksFromSupabase())
       .subscribe();
   }
 
   /** Refresh webhooks from Supabase */
   private async refreshWebhooksFromSupabase(): Promise<void> {
     try {
-      const { data, error } = await supabase.from('webhooks').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from(DB_TABLES.WEBHOOKS).select('*').order('created_at', { ascending: false });
       if (error) throw error;
       const webhooks = data.map((w: SupabaseWebhookRecord) => this.transformSupabaseWebhook(w));
       this.mockWebhooks = webhooks;
@@ -148,7 +149,7 @@ class WebhookService {
   public async getWebhooks(): Promise<WebhookConfig[]> {
     if (this.shouldUseSupabase()) {
       try {
-        const { data, error } = await supabase.from('webhooks').select('*').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from(DB_TABLES.WEBHOOKS).select('*').order('created_at', { ascending: false });
         if (!error && data) {
           const webhooks = data.map((w: SupabaseWebhookRecord) => this.transformSupabaseWebhook(w));
           this.mockWebhooks = webhooks;
@@ -173,7 +174,7 @@ class WebhookService {
   public async getWebhookById(id: string): Promise<WebhookConfig | null> {
     if (this.shouldUseSupabase()) {
       try {
-        const { data, error } = await supabase.from('webhooks').select('*').eq('id', id).single();
+        const { data, error } = await supabase.from(DB_TABLES.WEBHOOKS).select('*').eq('id', id).single();
         if (!error && data) return this.transformSupabaseWebhook(data);
         if ((error as PostgrestError)?.code === 'PGRST116') return null;
       } catch {
@@ -211,7 +212,7 @@ class WebhookService {
         is_active: data.isActive,
       };
       try {
-        const { data: newRec, error } = await supabase.from('webhooks').insert(record).select('*').single();
+        const { data: newRec, error } = await supabase.from(DB_TABLES.WEBHOOKS).insert(record).select('*').single();
         if (!error && newRec) {
           const hook = this.transformSupabaseWebhook(newRec);
           this.mockWebhooks.unshift(hook);
@@ -244,7 +245,7 @@ class WebhookService {
     if (this.shouldUseSupabase()) {
       const payload = { ...this.transformToSupabaseFormat(data), updated_at: new Date().toISOString() };
       try {
-        const { data: upd, error } = await supabase.from('webhooks').update(payload).eq('id', id).select('*').single();
+        const { data: upd, error } = await supabase.from(DB_TABLES.WEBHOOKS).update(payload).eq('id', id).select('*').single();
         if (!error && upd) {
           const hook = this.transformSupabaseWebhook(upd);
           this.replaceLocal(hook);
@@ -271,7 +272,7 @@ class WebhookService {
   public async deleteWebhook(id: string): Promise<DeleteWebhookResponse> {
     if (this.shouldUseSupabase()) {
       try {
-        const { error } = await supabase.from('webhooks').delete().eq('id', id);
+        const { error } = await supabase.from(DB_TABLES.WEBHOOKS).delete().eq('id', id);
         if (!error) {
           this.removeLocal(id);
           return { status: 'success', message: '', data: { id, success: true } };
@@ -298,7 +299,7 @@ class WebhookService {
     }
     if (this.shouldUseSupabase()) {
       try {
-        const { data: upd, error } = await supabase.from('webhooks').update({ is_active: newState, updated_at: new Date().toISOString() }).eq('id', id).select('*').single();
+        const { data: upd, error } = await supabase.from(DB_TABLES.WEBHOOKS).update({ is_active: newState, updated_at: new Date().toISOString() }).eq('id', id).select('*').single();
         if (!error && upd) {
           const hook = this.transformSupabaseWebhook(upd);
           this.replaceLocal(hook);
@@ -335,8 +336,8 @@ class WebhookService {
   }
 
   /** Transform to Supabase format */
-  private transformToSupabaseFormat(data: Partial<WebhookConfig>): any {
-    const result: any = {};
+  private transformToSupabaseFormat(data: Partial<WebhookConfig>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
     if (data.name !== undefined) result.name = data.name;
     if (data.description !== undefined) result.description = data.description;
     if (data.securityToken !== undefined) result.security_token = data.securityToken;

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { DB_TABLES } from '@/constants/database';
 
 /**
  * Supabase URL from environment variables
@@ -49,8 +50,8 @@ export const isSupabaseAvailable = async (): Promise<boolean> => {
   }
   
   try {
-    // Simple query to check if we can connect
-    const { error } = await supabase.from('webhooks').select('count');
+    // Simple query to check if we can connect using the standardized table name
+    const { error } = await supabase.from(DB_TABLES.WEBHOOKS).select('count');
     return !error;
   } catch (e) {
     console.error('Supabase connection error:', e);
