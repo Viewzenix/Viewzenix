@@ -4,11 +4,11 @@
 This document records the results of manual testing performed on the Viewzenix trading webhook platform.
 
 ## Test Environment
-- Date: [Current Date]
-- Tester: [User]
-- Frontend Version: Latest from develop branch
+- Date: May 5, 2025
+- Tester: John
+- Frontend Version: Latest from develop branch (post webhook-service-integration merge)
 - Backend Version: Latest from develop branch
-- Browser: [Browser Information]
+- Browser: Chrome
 - OS: Windows 10
 
 ## Test Results
@@ -26,7 +26,7 @@ This document records the results of manual testing performed on the Viewzenix t
 | FE-002 | Webhook Creation | 1. Click "Create New Webhook"<br>2. Fill the form<br>3. Submit the form | New webhook is created and appears in the list | Successfully created "Test Trading Strategy" webhook | PASS | Webhook appears in list with correct information |
 | FE-003 | Webhook Editing | 1. Click "Edit" on a webhook<br>2. Change field values<br>3. Submit changes | Webhook is updated with new values | Webhook updated successfully with new description and notification preferences | PASS | All changes reflected correctly in the UI |
 | FE-004 | Secret Key Handling | 1. Edit a webhook<br>2. Change the secret key<br>3. Save changes | Secret key is updated correctly | Secret key was successfully updated | PASS | Masked key shows the updated value |
-| FE-005 | Status Toggle | 1. Click on the status badge<br>2. Verify status changes | Status toggles between active and inactive | Status toggles correctly between active and inactive states | PASS | User feedback suggestion: notification message could stay visible longer |
+| FE-005 | Status Toggle | 1. Click on the status badge<br>2. Verify status changes | Status toggles between active and inactive | Error displayed: "_services_webhook_service__WEBPACK_IMPORTED_MODULE_3__._webhookService.toggleWebhookActive is not a function" | FAIL | Error persists even after page refresh, preventing status toggle functionality |
 | FE-006 | Webhook Deletion | 1. Click "Delete" on a webhook<br>2. Confirm deletion | Webhook is removed from the list | Webhook successfully deleted and remained gone after refresh | PASS | Confirmation dialog works correctly |
 | FE-007 | Data Persistence | 1. Create a webhook<br>2. Refresh the page | Webhook data persists after refresh | All webhooks persisted correctly after refresh and navigation | PASS | No duplicates appeared after navigation |
 | FE-008 | Form Validation | 1. Submit form with missing required fields<br>2. Submit form with invalid data | Validation errors are shown correctly | Validation errors displayed for missing name field | PASS | Security token generation works alongside validation |
@@ -58,10 +58,38 @@ The frontend WebhookService has been implemented with methods for CRUD operation
 
 These endpoints need to be implemented in the backend before TASK-106 (integrating frontend WebhookService with backend API) can be completed.
 
+## Frontend Errors Found During Testing
+
+During testing of the WebhookService integration, several React errors were observed in the developer console:
+
+### React Rendering Errors
+| Error ID | Description | Impact | Workaround |
+|---------|-------------|--------|------------|
+| ERR-001 | `Warning: Cannot update a component ('HotReload') while rendering a different component ('WebhookSetupPage')` | Appears during component rendering but doesn't prevent functionality | Refresh the page after operations |
+| ERR-002 | `TypeError: Cannot read properties of undefined (reading 'id')` | Occurs in page.tsx around line 64 when accessing webhook.id | Refresh the page to see changes |
+| ERR-003 | `_services_webhook_service__WEBPACK_IMPORTED_MODULE_3__._webhookService.toggleWebhookActive is not a function` | Shown when toggling webhook status | None - This error is blocking the status toggle functionality |
+| ERR-004 | `Error loading webhooks from localStorage: ReferenceError: localStorage is not defined` | Server-side rendering error due to browser-specific API usage | None - The error appears during SSR but functionality works client-side |
+
+These errors indicate issues with the React component lifecycle and state management:
+1. State updates are happening during render phase, which is not allowed in React
+2. The webhook object is sometimes undefined when the component tries to access its properties
+3. The toggleWebhookActive method isn't being properly imported or exposed
+4. Browser-specific APIs (localStorage) are being accessed during server-side rendering
+
+For ERR-001 and ERR-002, the issues appear to be UI-only and operations are correctly reflected after a page refresh, indicating that the data persistence layer is working properly. ERR-003 is a critical issue that completely prevents the webhook status toggle functionality from working, even after page refresh. ERR-004 is a server-side rendering issue that occurs because the WebhookService tries to access localStorage during server rendering, but this functionality continues to work correctly on the client side.
+
 ## Issues and Recommendations
 1. UX Improvement: Make notification messages stay visible longer before disappearing to improve user experience
 2. Backend Fix: Update backend configuration to use FLASK_DEBUG instead of deprecated FLASK_ENV parameter
 3. Architecture Gap: Implement webhook configuration management endpoints in the backend to support frontend WebhookService functionality
+4. Frontend Fix: Resolve React rendering errors in WebhookSetupPage component, particularly around state management and component updates
+5. Frontend Critical Fix: Fix the toggleWebhookActive function import/reference in the webhook status toggle functionality - this is a blocker issue preventing a core feature from working
+6. Frontend Improvement: Add proper error handling to ensure graceful degradation when functions are unavailable
+7. Frontend Fix: Implement server-side rendering compatibility for WebhookService by checking for window/localStorage availability and using dynamic imports or the useEffect hook for browser-specific code
 
 ## Conclusion
-The frontend UI components and backend webhook signal endpoint are functioning correctly when tested individually. However, full integration testing is blocked by the missing webhook configuration management endpoints in the backend. A new task should be created to implement these endpoints before proceeding with the integration task.
+The frontend UI components and backend webhook signal endpoint are functioning correctly when tested individually, with one critical exception: the webhook status toggle functionality is completely broken due to an implementation error.
+
+Most React rendering errors encountered during testing don't prevent core functionality from working after a page refresh, allowing basic CRUD operations to work despite the UI issues. However, the status toggle functionality is completely non-functional due to a missing or incorrectly exported method in the WebhookService.
+
+Full integration testing is blocked by the missing webhook configuration management endpoints in the backend. A new task should be created to implement these endpoints before proceeding with the integration task. Additionally, a critical bug fix for the webhook status toggle functionality should be prioritized, along with addressing other React rendering errors to improve the user experience and code quality.
