@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { WebhookConfigForm, WebhookCard } from '@/components/webhook'
 import { webhookService } from '@/services/webhook.service'
 import { WebhookConfig } from '@/types/webhook'
@@ -41,27 +41,27 @@ export default function WebhookSetupPage() {
     fetchWebhooks();
   }, []);
 
-  // Handle webhook creation success
-  const handleWebhookCreated = (webhook: WebhookConfig) => {
+  // Handle webhook creation success - wrapped in useCallback to prevent unnecessary re-renders
+  const handleWebhookCreated = useCallback((webhook: WebhookConfig) => {
     setWebhooks(prevWebhooks => [...prevWebhooks, webhook]);
     setShowForm(false);
     setStatusMessage({
       type: 'success',
       message: 'Webhook configuration created successfully!'
     });
-  };
+  }, []);
 
-  // Handle edit button click
-  const handleEditWebhook = (webhook: WebhookConfig) => {
+  // Handle edit button click - wrapped in useCallback
+  const handleEditWebhook = useCallback((webhook: WebhookConfig) => {
     setEditingWebhook(webhook);
     setShowForm(true);
-  };
+  }, []);
 
-  // Handle webhook update success
-  const handleWebhookUpdated = (updatedWebhook: WebhookConfig) => {
+  // Handle webhook update success - wrapped in useCallback
+  const handleWebhookUpdated = useCallback((updatedWebhook: WebhookConfig) => {
     setWebhooks(prevWebhooks => 
       prevWebhooks.map(webhook => 
-        webhook.id === updatedWebhook.id ? updatedWebhook : webhook
+        webhook?.id === updatedWebhook?.id ? updatedWebhook : webhook
       )
     );
     setEditingWebhook(null);
@@ -70,31 +70,35 @@ export default function WebhookSetupPage() {
       type: 'success',
       message: 'Webhook configuration updated successfully!'
     });
-  };
+  }, []);
 
-  // Handle webhook status change
-  const handleStatusChange = (updatedWebhook: WebhookConfig) => {
+  // Handle webhook status change - wrapped in useCallback
+  const handleStatusChange = useCallback((updatedWebhook: WebhookConfig) => {
+    if (!updatedWebhook) return;
+    
     setWebhooks(prevWebhooks => 
       prevWebhooks.map(webhook => 
-        webhook.id === updatedWebhook.id ? updatedWebhook : webhook
+        webhook?.id === updatedWebhook?.id ? updatedWebhook : webhook
       )
     );
     setStatusMessage({
       type: 'success',
       message: `Webhook ${updatedWebhook.isActive ? 'activated' : 'deactivated'} successfully!`
     });
-  };
+  }, []);
 
-  // Handle cancel button click
-  const handleCancelForm = () => {
+  // Handle cancel button click - wrapped in useCallback
+  const handleCancelForm = useCallback(() => {
     setShowForm(false);
     setEditingWebhook(null);
-  };
+  }, []);
 
-  // Handle delete webhook
-  const handleDeleteWebhook = async (id: string) => {
+  // Handle delete webhook - wrapped in useCallback
+  const handleDeleteWebhook = useCallback(async (id: string) => {
+    if (!id) return;
+    
     // Simple confirmation
-    if (!window.confirm('Are you sure you want to delete this webhook configuration?')) {
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this webhook configuration?')) {
       return;
     }
     
@@ -102,7 +106,7 @@ export default function WebhookSetupPage() {
       await webhookService.deleteWebhook(id);
       
       // Update state by removing the deleted webhook
-      setWebhooks(prevWebhooks => prevWebhooks.filter(webhook => webhook.id !== id));
+      setWebhooks(prevWebhooks => prevWebhooks.filter(webhook => webhook?.id !== id));
       
       setStatusMessage({
         type: 'success',
@@ -114,7 +118,17 @@ export default function WebhookSetupPage() {
         message: 'Failed to delete webhook configuration. Please try again.'
       });
     }
-  };
+  }, []);
+
+  // Helper function to create new webhook button
+  const renderCreateWebhookButton = useCallback(() => (
+    <Button 
+      onClick={() => setShowForm(true)}
+      disabled={isLoading}
+    >
+      Create New Webhook
+    </Button>
+  ), [isLoading]);
 
   return (
     <div className={styles.container}>
@@ -124,14 +138,7 @@ export default function WebhookSetupPage() {
           <p className={styles.subtitle}>Configure your TradingView webhook endpoints to receive trading signals.</p>
         </div>
         
-        {!showForm && (
-          <Button 
-            onClick={() => setShowForm(true)}
-            disabled={isLoading}
-          >
-            Create New Webhook
-          </Button>
-        )}
+        {!showForm && renderCreateWebhookButton()}
       </div>
       
       {statusMessage && (
@@ -203,24 +210,21 @@ export default function WebhookSetupPage() {
             ) : webhooks.length === 0 ? (
               <div className={styles.emptyState}>
                 <p>You haven't created any webhook configurations yet.</p>
-                <Button 
-                  onClick={() => setShowForm(true)}
-                  className={styles.emptyStateButton}
-                >
-                  Create Your First Webhook
-                </Button>
+                {renderCreateWebhookButton()}
               </div>
             ) : (
               <div className={styles.webhooksList}>
-                {webhooks.map(webhook => (
-                  <WebhookCard
-                    key={webhook.id}
-                    webhook={webhook}
-                    onEdit={handleEditWebhook}
-                    onDelete={handleDeleteWebhook}
-                    onStatusChange={handleStatusChange}
-                  />
-                ))}
+                {webhooks.map(webhook => 
+                  webhook ? (
+                    <WebhookCard
+                      key={webhook.id}
+                      webhook={webhook}
+                      onEdit={handleEditWebhook}
+                      onDelete={handleDeleteWebhook}
+                      onStatusChange={handleStatusChange}
+                    />
+                  ) : null
+                )}
               </div>
             )}
           </div>

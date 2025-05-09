@@ -9,6 +9,12 @@ import {
 import { webhookApi, ApiError, USE_API, FORCE_LOCAL_STORAGE, isApiAvailable } from '@/services/api';
 
 /**
+ * Check if code is running in a browser environment
+ * @returns boolean indicating if window is defined (client-side)
+ */
+const isBrowser = () => typeof window !== 'undefined';
+
+/**
  * Service for managing webhook configurations
  * This service provides CRUD operations for webhook configurations and
  * can use either the backend API or localStorage for data persistence.
@@ -19,11 +25,13 @@ class WebhookService {
   private apiAvailable = false;
 
   constructor() {
-    // Initialize from localStorage if not using API
-    this.loadFromStorage();
+    // Only initialize from localStorage if in browser environment
+    if (isBrowser()) {
+      this.loadFromStorage();
+    }
     
-    // Check API availability asynchronously
-    if (USE_API && !FORCE_LOCAL_STORAGE) {
+    // Check API availability asynchronously (client-side only)
+    if (isBrowser() && USE_API && !FORCE_LOCAL_STORAGE) {
       this.checkApiAvailability();
     }
   }
@@ -49,6 +57,11 @@ class WebhookService {
    * This initializes with a default webhook if storage is empty
    */
   private loadFromStorage(): void {
+    // Skip if not in browser environment
+    if (!isBrowser()) {
+      return;
+    }
+
     try {
       const storedWebhooks = localStorage.getItem(this.STORAGE_KEY);
       
@@ -87,6 +100,11 @@ class WebhookService {
    * Save webhooks to local storage
    */
   private saveToStorage(): void {
+    // Skip if not in browser environment
+    if (!isBrowser()) {
+      return;
+    }
+
     try {
       localStorage.setItem(
         this.STORAGE_KEY, 
@@ -102,7 +120,7 @@ class WebhookService {
    * This checks both the USE_API flag and the API availability
    */
   private shouldUseApi(): boolean {
-    return USE_API && this.apiAvailable && !FORCE_LOCAL_STORAGE;
+    return isBrowser() && USE_API && this.apiAvailable && !FORCE_LOCAL_STORAGE;
   }
 
   /**
@@ -305,6 +323,16 @@ class WebhookService {
   async toggleWebhookActive(id: string, isActive: boolean): Promise<WebhookConfig> {
     const response = await this.updateWebhook(id, { isActive });
     return response.data.webhook;
+  }
+
+  /**
+   * Toggle a webhook's active status (alias for toggleWebhookActive)
+   * @param id Webhook configuration ID
+   * @param isActive New active status
+   * @returns Promise resolving to updated webhook
+   */
+  async toggleWebhookStatus(id: string, isActive: boolean): Promise<WebhookConfig> {
+    return this.toggleWebhookActive(id, isActive);
   }
 
   /**
