@@ -11,94 +11,141 @@ The API integration consists of several components:
 1. **API Client (`src/services/api.ts`)**: A centralized module for making HTTP requests to the backend.
 2. **WebhookService (`src/services/webhook.service.ts`)**: A service that uses the API client to manage webhook configurations.
 3. **Environment Configuration (`/.env.local.example`)**: Configuration for API URLs and feature flags.
+4. **Mock Server (`src/mocks/`)**: Mock API implementation for development and testing.
 
 ## API Client
 
-The API client provides a standardized way to make HTTP requests to the backend API. It handles error handling, authentication, and request/response formatting.
+The API client provides a standardized way to make HTTP requests to the backend API. It handles error handling, response parsing, and common configuration.
 
-Key features:
-- Custom error handling with the `ApiError` class
-- Typed API endpoints for webhook operations
-- Automatic JSON parsing and error detection
-- Support for all HTTP methods (GET, POST, PUT, PATCH, DELETE)
-
-Usage example:
 ```typescript
-import { api } from '@/services/api';
+// Example of making an API request
+import { webhookApi } from '@/services/api';
 
-// Make a GET request
-const data = await api.get<MyDataType>('/endpoint');
+// Get all webhooks
+const webhooks = await webhookApi.getAll();
 
-// Make a POST request
-const result = await api.post<MyResponseType>('/endpoint', { key: 'value' });
+// Create a new webhook
+const newWebhook = await webhookApi.create({
+  name: 'My Webhook',
+  securityToken: 'secret-token',
+  // ...other properties
+});
 ```
 
 ## WebhookService
 
-The WebhookService provides CRUD operations for webhook configurations. It can use either the backend API or localStorage for data persistence, depending on the `NEXT_PUBLIC_USE_API` environment variable.
+The WebhookService provides a higher-level interface for managing webhook configurations. It can use either the backend API or localStorage for data persistence, depending on the environment configuration.
 
-Key features:
-- Seamless transition between API and localStorage
-- Fallback to localStorage if the API fails
-- Consistent interface for both data sources
-- Type safety through TypeScript interfaces
+```typescript
+// Example of using the WebhookService
+import { webhookService } from '@/services/webhook.service';
+
+// Get all webhooks
+const webhooks = await webhookService.getWebhooks();
+
+// Create a new webhook
+const newWebhook = await webhookService.createWebhook({
+  name: 'My Webhook',
+  securityToken: 'secret-token',
+  // ...other properties
+});
+```
 
 ## Environment Configuration
 
-The application uses environment variables to configure the API integration. These variables control whether the application uses the real backend API or falls back to localStorage for data persistence.
+The API integration can be configured using environment variables in a `.env.local` file:
 
-### Configuration Files
-
-Next.js supports different environment files for different environments:
-
-- `.env.local`: Local overrides (not checked into git)
-- `.env.development`: Development environment (used with `npm run dev`)
-- `.env.production`: Production environment (used with `npm run build` and `npm run start`)
-
-### Required Variables
-
-| Variable | Description | Default | Example |
-|---|---|---|---|
-| `NEXT_PUBLIC_USE_API` | Whether to use the backend API | `false` | `true` |
-| `NEXT_PUBLIC_API_URL` | Base URL for API requests | `http://localhost:5000` | `https://api.viewzenix.com` |
-
-### Usage
-
-1. Copy `.env.local.example` to `.env.local`
-2. Set the environment variables according to your needs
-3. Restart the development server
-
-Example `.env.local` file:
 ```
-NEXT_PUBLIC_USE_API=true
+# API Configuration
+# Set to 'true' to use backend API, 'false' to use localStorage
+NEXT_PUBLIC_USE_API=false
+
+# Base URL for API requests
 NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
-## Testing
+Copy the `.env.local.example` file to `.env.local` and modify it according to your environment.
 
-When testing the API integration, consider the following scenarios:
+## Mock Server (MSW)
 
-1. **API Available**: Set `NEXT_PUBLIC_USE_API=true` to test with the real API.
-2. **API Unavailable**: Set `NEXT_PUBLIC_USE_API=false` to test with localStorage.
-3. **API Errors**: Test how the application handles API errors by simulating server errors.
+The application uses Mock Service Worker (MSW) v2 to mock API responses during development and testing. This allows the frontend to work without a running backend or to test specific API scenarios.
 
-## Known Limitations
+### Setup
 
-1. The current implementation assumes the backend API endpoints follow a specific structure.
-2. The API client does not yet support authentication.
-3. Some advanced features (like paging and filtering) are not yet implemented.
+1. Install MSW:
+
+```bash
+npm install --save-dev msw
+```
+
+2. The mock server is automatically initialized in development mode through the setup in `_app.tsx`.
+
+3. API handlers are defined in `src/mocks/handlers.ts`.
+
+### Customizing Mock Responses
+
+To customize the mock API responses, modify the handlers in `src/mocks/handlers.ts`:
+
+```typescript
+// Example of customizing a handler
+http.get('/api/webhooks', () => {
+  // Return custom data
+  return HttpResponse.json([
+    {
+      id: '1',
+      name: 'Custom Webhook',
+      // ...other properties
+    }
+  ]);
+});
+```
+
+## Error Handling
+
+The API client provides standardized error handling through the `ApiError` class:
+
+```typescript
+try {
+  const webhooks = await webhookApi.getAll();
+} catch (error) {
+  if (error instanceof ApiError) {
+    console.error(`API Error (${error.status}): ${error.message}`);
+    // Handle specific error codes
+    if (error.status === 401) {
+      // Handle unauthorized
+    } else if (error.status === 404) {
+      // Handle not found
+    }
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## Troubleshooting
+
+### API Connection Issues
+
+If you're having trouble connecting to the API:
+
+1. Verify that the API server is running
+2. Check your `.env.local` configuration
+3. Verify network connectivity
+4. Check browser console for CORS errors
+
+### Using localStorage Instead of API
+
+To use localStorage instead of the API (useful when backend is not available):
+
+1. Set `NEXT_PUBLIC_USE_API=false` in your `.env.local` file
+2. Restart the development server
 
 ## Future Improvements
 
-1. Add authentication to the API client
-2. Support paging and filtering for larger datasets
-3. Add retry logic for failed requests
-4. Implement request caching for improved performance
-5. Add websocket support for real-time updates
+Once the backend API is fully implemented (TASK-008), the following improvements will be made:
 
-## Related Files
-
-- `src/services/api.ts`: API client implementation
-- `src/services/webhook.service.ts`: WebhookService implementation
-- `src/types/webhook.ts`: Type definitions for webhook data
-- `.env.local.example`: Example environment configuration 
+1. Update API endpoint paths to match the actual backend implementation
+2. Add authentication token handling
+3. Implement proper error handling for specific backend error codes
+4. Update the data models to match the backend schema
+5. Add additional API endpoints for webhook testing and monitoring 

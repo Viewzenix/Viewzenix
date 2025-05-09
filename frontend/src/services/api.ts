@@ -43,103 +43,100 @@ export async function fetchApi<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  const defaultHeaders = {
+  const headers = {
     'Content-Type': 'application/json',
-    // Add auth token if available
-    // 'Authorization': `Bearer ${getAuthToken()}`,
+    ...(options.headers || {}),
   };
-
+  
+  const config = {
+    ...options,
+    headers,
+  };
+  
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
-    });
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (error) {
-      data = null;
-    }
-
+    const response = await fetch(url, config);
+    
+    // Parse the JSON response
+    const data = await response.json();
+    
+    // Check if the request was successful
     if (!response.ok) {
       throw new ApiError(
         response.status,
-        data?.message || response.statusText,
-        data
+        data.error?.message || 'An unexpected error occurred',
+        data.error
       );
     }
-
+    
     return data as T;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
     
-    // Network errors, CORS issues, etc.
-    console.error('API request failed:', error);
+    // Handle network errors or JSON parsing errors
     throw new ApiError(
-      0, 
-      'Network error or server unreachable. Please check your connection and try again.',
-      null
+      500,
+      error instanceof Error ? error.message : 'Network error',
+      { originalError: error }
     );
   }
 }
 
 /**
- * HTTP methods wrapped around fetchApi
- */
-export const api = {
-  get: <T>(endpoint: string, options?: RequestInit) => 
-    fetchApi<T>(endpoint, { ...options, method: 'GET' }),
-  
-  post: <T>(endpoint: string, data: any, options?: RequestInit) =>
-    fetchApi<T>(endpoint, {
-      ...options,
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  
-  put: <T>(endpoint: string, data: any, options?: RequestInit) =>
-    fetchApi<T>(endpoint, {
-      ...options,
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  
-  patch: <T>(endpoint: string, data: any, options?: RequestInit) =>
-    fetchApi<T>(endpoint, {
-      ...options,
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    }),
-  
-  delete: <T>(endpoint: string, options?: RequestInit) =>
-    fetchApi<T>(endpoint, { ...options, method: 'DELETE' }),
-};
-
-/**
- * API endpoints for webhook configuration
- * These endpoints are provisional and should be updated
- * once the backend implementation is complete.
+ * Webhook API endpoints
  */
 export const webhookApi = {
-  getAll: () => api.get<WebhookConfig[]>('/api/webhook-configs'),
+  /**
+   * Get all webhook configurations
+   * @returns List of webhook configurations
+   */
+  getAll: async (): Promise<WebhookConfig[]> => {
+    return fetchApi<WebhookConfig[]>('/api/webhooks');
+  },
   
-  getById: (id: string) => api.get<WebhookConfig>(`/api/webhook-configs/${id}`),
+  /**
+   * Get a specific webhook configuration by ID
+   * @param id Webhook configuration ID
+   * @returns Webhook configuration details
+   */
+  getById: async (id: string): Promise<WebhookConfig> => {
+    return fetchApi<WebhookConfig>(`/api/webhooks/${id}`);
+  },
   
-  create: (data: CreateWebhookConfigData) => 
-    api.post<CreateWebhookResponse>('/api/webhook-configs', data),
+  /**
+   * Create a new webhook configuration
+   * @param data Webhook configuration data
+   * @returns Response containing the created webhook
+   */
+  create: async (data: CreateWebhookConfigData): Promise<CreateWebhookResponse> => {
+    return fetchApi<CreateWebhookResponse>('/api/webhooks', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
   
-  update: (id: string, data: UpdateWebhookConfigData) => 
-    api.put<UpdateWebhookResponse>(`/api/webhook-configs/${id}`, data),
+  /**
+   * Update an existing webhook configuration
+   * @param id Webhook configuration ID
+   * @param data Updated webhook configuration data
+   * @returns Response containing the updated webhook
+   */
+  update: async (id: string, data: UpdateWebhookConfigData): Promise<UpdateWebhookResponse> => {
+    return fetchApi<UpdateWebhookResponse>(`/api/webhooks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
   
-  delete: (id: string) => 
-    api.delete<DeleteWebhookResponse>(`/api/webhook-configs/${id}`),
-  
-  toggleStatus: (id: string, isActive: boolean) => 
-    api.patch<WebhookConfig>(`/api/webhook-configs/${id}/status`, { isActive }),
+  /**
+   * Delete a webhook configuration
+   * @param id Webhook configuration ID
+   * @returns Response confirming deletion
+   */
+  delete: async (id: string): Promise<DeleteWebhookResponse> => {
+    return fetchApi<DeleteWebhookResponse>(`/api/webhooks/${id}`, {
+      method: 'DELETE',
+    });
+  },
 }; 
