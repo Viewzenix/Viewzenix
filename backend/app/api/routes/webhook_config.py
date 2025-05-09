@@ -107,8 +107,8 @@ def get_all_webhook_configs() -> Tuple[Any, int]:
         }), 500
 
 
-@webhook_config_bp.route('/<uuid:id>', methods=['GET'])
-def get_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
+@webhook_config_bp.route('/<string:id>', methods=['GET'])
+def get_webhook_config(id: str) -> Tuple[Any, int]:
     """
     Get a specific webhook configuration.
     
@@ -163,8 +163,8 @@ def create_webhook_config() -> Tuple[Any, int]:
         # Get request data
         data = request.get_json()
         
-        # Generate UUID for the webhook configuration
-        webhook_id = uuid.uuid4()
+        # Generate string UUID for the webhook configuration
+        webhook_id = str(uuid.uuid4())
         
         # Generate webhook URL
         webhook_base_url = current_app.config.get('WEBHOOK_BASE_URL', 'https://api.viewzenix.com/webhook')
@@ -195,7 +195,7 @@ def create_webhook_config() -> Tuple[Any, int]:
         
         # Log the creation
         logger.info(f"Created webhook configuration: {webhook_config.id}",
-                   extra={"webhook_id": str(webhook_config.id)})
+                   extra={"webhook_id": webhook_config.id})
         
         return jsonify({
             "status": "success",
@@ -235,9 +235,9 @@ def create_webhook_config() -> Tuple[Any, int]:
         }), 500
 
 
-@webhook_config_bp.route('/<uuid:id>', methods=['PUT'])
+@webhook_config_bp.route('/<string:id>', methods=['PUT'])
 @validate_schema(WEBHOOK_CONFIG_UPDATE_SCHEMA)
-def update_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
+def update_webhook_config(id: str) -> Tuple[Any, int]:
     """
     Update a webhook configuration.
     
@@ -286,7 +286,7 @@ def update_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
         
         # Log the update
         logger.info(f"Updated webhook configuration: {webhook_config.id}",
-                   extra={"webhook_id": str(webhook_config.id)})
+                   extra={"webhook_id": webhook_config.id})
         
         return jsonify({
             "status": "success",
@@ -326,8 +326,8 @@ def update_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
         }), 500
 
 
-@webhook_config_bp.route('/<uuid:id>', methods=['DELETE'])
-def delete_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
+@webhook_config_bp.route('/<string:id>', methods=['DELETE'])
+def delete_webhook_config(id: str) -> Tuple[Any, int]:
     """
     Delete a webhook configuration.
     
@@ -355,7 +355,7 @@ def delete_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
         
         # Log the deletion
         logger.info(f"Deleted webhook configuration: {id}",
-                   extra={"webhook_id": str(id)})
+                   extra={"webhook_id": id})
         
         return jsonify({
             "status": "success",
@@ -381,9 +381,9 @@ def delete_webhook_config(id: uuid.UUID) -> Tuple[Any, int]:
         }), 500
 
 
-@webhook_config_bp.route('/<uuid:id>/toggle', methods=['PATCH'])
+@webhook_config_bp.route('/<string:id>/toggle', methods=['PATCH'])
 @validate_schema(WEBHOOK_CONFIG_TOGGLE_SCHEMA)
-def toggle_webhook_active(id: uuid.UUID) -> Tuple[Any, int]:
+def toggle_webhook_active(id: str) -> Tuple[Any, int]:
     """
     Toggle a webhook configuration's active status.
     
@@ -423,7 +423,7 @@ def toggle_webhook_active(id: uuid.UUID) -> Tuple[Any, int]:
         # Log the toggle
         status = "activated" if webhook_config.is_active else "deactivated"
         logger.info(f"Webhook configuration {status}: {webhook_config.id}",
-                   extra={"webhook_id": str(webhook_config.id), "is_active": webhook_config.is_active})
+                   extra={"webhook_id": webhook_config.id, "is_active": webhook_config.is_active})
         
         return jsonify({
             "status": "success",

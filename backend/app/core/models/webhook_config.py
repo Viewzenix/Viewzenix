@@ -6,7 +6,7 @@ in the database. The model corresponds to the webhook_configs table.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.types import Uuid, JSON
 
 from app.extensions import db
 
@@ -20,8 +20,8 @@ class WebhookConfig(db.Model):
     """
     __tablename__ = 'webhook_configs'
     
-    # Primary key
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Primary key - Using database-agnostic Uuid type with as_uuid=False for SQLite compatibility
+    id = db.Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Basic information
     name = db.Column(db.String(255), nullable=False)
@@ -31,8 +31,8 @@ class WebhookConfig(db.Model):
     webhook_url = db.Column(db.String(512), nullable=False, unique=True)
     security_token = db.Column(db.String(255), nullable=False)
     
-    # Notification preferences
-    notification_preferences = db.Column(JSONB, nullable=False, default={
+    # Notification preferences - Using database-agnostic JSON type instead of PostgreSQL JSONB
+    notification_preferences = db.Column(JSON, nullable=False, default={
         "email": True,
         "browser": True,
         "onSuccess": True,
