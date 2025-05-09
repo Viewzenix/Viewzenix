@@ -1,6 +1,6 @@
 # Implementation Reviews & Findings
 
-> Last updated: 2024-09-27
+> Last updated: 2025-05-09
 
 This document tracks reviews of implementations, important findings, and recommendations for the Viewzenix trading webhook platform project. It serves as a centralized location for assistant notes and helps track the evolution of the codebase across different feature branches.
 
@@ -169,4 +169,17 @@ After reviewing both the frontend and backend implementations, they appear to be
 
 4. **Documentation**:
    - Create comprehensive API documentation
-   - Add detailed user guides for webhook setup 
+   - Add detailed user guides for webhook setup
+
+## Project Review & Recommendations (2025-05-09)
+
+### Compatibility Issues
+- The frontend's `webhookApi.toggleActive` in `frontend/src/services/api.ts` uses HTTP `POST`, but the backend `/webhooks/:id/toggle` endpoint expects `PATCH`. This mismatch will cause method not allowed errors.
+
+### Improvement Recommendations
+1. Update `webhookApi.toggleActive` in `frontend/src/services/api.ts` to use `PATCH` instead of `POST`.
+2. Wrap the `notification_preferences` default in `backend/app/core/models/webhook_config.py` with a `lambda` (e.g., `default=lambda: {...}`) to avoid shared mutable defaults.
+3. Remove unused `ApiSuccessResponse` and `ApiErrorResponse` imports from `frontend/src/services/api.ts`.
+4. Enhance `fetchApi` in `frontend/src/services/api.ts` to convert object bodies to snake_case when `options.body` is an object (not just when it's a string).
+5. (Optional) Consider trimming leading underscores in `camelToSnake` to avoid prefixes like `_hello_world` when converting strings starting with uppercase letters.
+ 
