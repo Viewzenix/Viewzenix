@@ -7,7 +7,6 @@
 - TASK-004: Design webhook API contract
 
 ## Todo
-- TASK-008: Implement Webhook Configuration Management Endpoints
 - TASK-107: Fix Webhook Status Toggle Functionality
 - TASK-108: Fix React Rendering Errors in Webhook Setup Page
 - TASK-109: Fix Server-Side Rendering Compatibility in WebhookService
@@ -21,6 +20,7 @@
 - TASK-105: Implement Webhook Setup UI
 
 ## Done
+- TASK-008: Implement Webhook Configuration Management Endpoints (2025-06-05)
 - TASK-100: Create WebhookService with localStorage persistence
 - TASK-101: Implement TradingView webhook receiver endpoint
 - TASK-102: Create webhook validation middleware

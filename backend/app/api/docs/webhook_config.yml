@@ -170,6 +170,61 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /webhooks/{id}/toggle:
+    parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: UUID of the webhook configuration
+    patch:
+      summary: Toggle a webhook configuration's active status
+      description: Activates or deactivates a webhook configuration
+      operationId: toggleWebhookActive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                  description: New active status for the webhook
+                  example: false
+              required:
+                - isActive
+      responses:
+        '200':
+          description: Webhook configuration status toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Webhook configuration deactivated successfully
+                  data:
+                    type: object
+                    properties:
+                      webhook:
+                        $ref: '#/components/schemas/WebhookConfig'
+                      success:
+                        type: boolean
+                        example: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
 components:
   schemas:
     WebhookNotificationPreference:
