@@ -1,0 +1,367 @@
+openapi: 3.0.0
+info:
+  title: Webhook Configuration API
+  description: API endpoints for managing webhook configurations in the Viewzenix platform
+  version: 1.0.0
+servers:
+  - url: /
+    description: Relative server
+paths:
+  /webhooks:
+    get:
+      summary: Get all webhook configurations
+      description: Retrieves a list of all webhook configurations
+      operationId: getAllWebhookConfigs
+      responses:
+        '200':
+          description: List of webhook configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookConfig'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      summary: Create a new webhook configuration
+      description: Creates a new webhook configuration with the provided data
+      operationId: createWebhookConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookConfigData'
+      responses:
+        '201':
+          description: Webhook configuration created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Webhook configuration created successfully
+                  data:
+                    type: object
+                    properties:
+                      webhook:
+                        $ref: '#/components/schemas/WebhookConfig'
+                      success:
+                        type: boolean
+                        example: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/IntegrityError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /webhooks/{id}:
+    parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: UUID of the webhook configuration
+    get:
+      summary: Get a specific webhook configuration
+      description: Retrieves a specific webhook configuration by ID
+      operationId: getWebhookConfig
+      responses:
+        '200':
+          description: Webhook configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/WebhookConfig'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      summary: Update a webhook configuration
+      description: Updates an existing webhook configuration
+      operationId: updateWebhookConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookConfigData'
+      responses:
+        '200':
+          description: Webhook configuration updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Webhook configuration updated successfully
+                  data:
+                    type: object
+                    properties:
+                      webhook:
+                        $ref: '#/components/schemas/WebhookConfig'
+                      success:
+                        type: boolean
+                        example: true
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/IntegrityError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      summary: Delete a webhook configuration
+      description: Deletes a specific webhook configuration
+      operationId: deleteWebhookConfig
+      responses:
+        '200':
+          description: Webhook configuration deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Webhook configuration deleted successfully
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174000
+                      success:
+                        type: boolean
+                        example: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    WebhookNotificationPreference:
+      type: object
+      properties:
+        email:
+          type: boolean
+          description: Send email notifications for webhook events
+          example: true
+        browser:
+          type: boolean
+          description: Send browser notifications for webhook events
+          example: true
+        onSuccess:
+          type: boolean
+          description: Send notifications on successful webhook execution
+          example: true
+        onFailure:
+          type: boolean
+          description: Send notifications on webhook execution failure
+          example: true
+      required:
+        - email
+        - browser
+        - onSuccess
+        - onFailure
+
+    WebhookConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the webhook configuration
+          example: 123e4567-e89b-12d3-a456-426614174000
+        name:
+          type: string
+          description: User-friendly name for the webhook
+          example: AAPL Trading Strategy
+        description:
+          type: string
+          description: Description of the webhook's purpose
+          example: TradingView alerts for Apple stock
+        webhookUrl:
+          type: string
+          description: Webhook endpoint URL provided to TradingView
+          example: https://api.viewzenix.com/webhook/123e4567-e89b-12d3-a456-426614174000
+        securityToken:
+          type: string
+          description: Security token/passphrase for webhook authentication
+          example: abc123xyz789
+        notificationPreferences:
+          $ref: '#/components/schemas/WebhookNotificationPreference'
+        isActive:
+          type: boolean
+          description: Whether this webhook configuration is currently active
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: 2024-05-01T12:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: 2024-05-05T15:30:00Z
+      required:
+        - id
+        - name
+        - webhookUrl
+        - securityToken
+        - notificationPreferences
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateWebhookConfigData:
+      type: object
+      properties:
+        name:
+          type: string
+          description: User-friendly name for the webhook
+          example: AAPL Trading Strategy
+        description:
+          type: string
+          description: Description of the webhook's purpose
+          example: TradingView alerts for Apple stock
+        securityToken:
+          type: string
+          description: Security token/passphrase for webhook authentication
+          example: abc123xyz789
+        notificationPreferences:
+          $ref: '#/components/schemas/WebhookNotificationPreference'
+        isActive:
+          type: boolean
+          description: Whether this webhook configuration is currently active
+          example: true
+      required:
+        - name
+        - securityToken
+
+    UpdateWebhookConfigData:
+      type: object
+      properties:
+        name:
+          type: string
+          description: User-friendly name for the webhook
+          example: AAPL Trading Strategy
+        description:
+          type: string
+          description: Description of the webhook's purpose
+          example: TradingView alerts for Apple stock
+        securityToken:
+          type: string
+          description: Security token/passphrase for webhook authentication
+          example: abc123xyz789
+        notificationPreferences:
+          $ref: '#/components/schemas/WebhookNotificationPreference'
+        isActive:
+          type: boolean
+          description: Whether this webhook configuration is currently active
+          example: true
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              code:
+                type: string
+                example: VALIDATION_ERROR
+              message:
+                type: string
+                example: Validation error
+              details:
+                type: object
+                example: { "field": "name", "error": "Field is required" }
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              code:
+                type: string
+                example: NOT_FOUND
+              message:
+                type: string
+                example: Webhook configuration with id 123e4567-e89b-12d3-a456-426614174000 not found
+
+    IntegrityError:
+      description: Integrity error (duplicate data)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              code:
+                type: string
+                example: INTEGRITY_ERROR
+              message:
+                type: string
+                example: Webhook configuration with similar attributes already exists
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              code:
+                type: string
+                example: SERVER_ERROR
+              message:
+                type: string
+                example: An unexpected error occurred

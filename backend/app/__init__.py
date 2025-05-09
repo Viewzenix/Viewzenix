@@ -11,6 +11,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 from app.config import get_config
+from app.extensions import init_extensions
 
 
 def create_app(config_name: Optional[str] = None) -> Flask:
@@ -37,6 +38,9 @@ def create_app(config_name: Optional[str] = None) -> Flask:
     
     # Set up logging
     _configure_logging(app)
+    
+    # Initialize extensions
+    init_extensions(app)
     
     # Register blueprints
     _register_blueprints(app)
@@ -91,6 +95,8 @@ def _register_blueprints(app: Flask) -> None:
     """
     # Import blueprints
     from app.api.routes.webhook import webhook_bp
+    from app.api.routes.webhook_config import webhook_config_bp
     
     # Register blueprints
     app.register_blueprint(webhook_bp)
+    app.register_blueprint(webhook_config_bp)

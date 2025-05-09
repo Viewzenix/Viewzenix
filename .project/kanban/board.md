@@ -24,6 +24,8 @@
 
 *Tasks completed and awaiting review/testing.*
 
+- [TASK-008: Implement Webhook Configuration Management Endpoints](../tasks/backend/TASK-008.md) `api` `database` `webhook` `rest` `crud` ![Priority: High](https://img.shields.io/badge/Priority-High-orange) @backend-agent (2024-05-11)
+
 ## ✅ Done (Last 7 days)
 
 *Recently completed tasks and user stories.*
