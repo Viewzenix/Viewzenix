@@ -8,6 +8,12 @@ python-dotenv==1.0.0
 pydantic==1.10.7  # Data validation
 requests==2.31.0  # For HTTP requests
 
+# Database
+Flask-SQLAlchemy==3.0.3
+Flask-Migrate==4.0.4
+SQLAlchemy==2.0.9  # Pinned to be compatible with Flask-SQLAlchemy 3.0.3
+psycopg2-binary==2.9.6  # PostgreSQL driver
+
 # Testing
 pytest==7.3.1
 pytest-flask==1.2.0
