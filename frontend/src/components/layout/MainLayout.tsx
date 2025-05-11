@@ -34,7 +34,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { open: isOpen, onOpen, onClose } = useDisclosure();
+  const { open, onOpen, onClose } = useDisclosure();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   
@@ -90,26 +90,28 @@ export function MainLayout({ children }: MainLayoutProps) {
         </Stack>
         
         {user && (
-          <Menu>
-            <MenuButton as={Button} variant="ghost">
-              <Stack direction="row" gap={2} align="center">
-                <Avatar size="sm" name={user.email} />
-                <Text display={{ base: 'none', md: 'block' }}>{user.email}</Text>
-                <Text>▼</Text>
-              </Stack>
-            </MenuButton>
-            <MenuList>
-              <MenuItem>Profile</MenuItem>
-              <MenuItem>Account Settings</MenuItem>
-              <MenuDivider />
-              <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
-            </MenuList>
-          </Menu>
+          <Menu.Root>
+            <Menu.Trigger asChild>
+              <Button variant="ghost">
+                <Stack direction="row" gap={2} align="center">
+                  <Avatar size="sm" name={user.email} />
+                  <Text display={{ base: 'none', md: 'block' }}>{user.email}</Text>
+                  <Text>▼</Text>
+                </Stack>
+              </Button>
+            </Menu.Trigger>
+            <Menu.Content>
+              <Menu.Item>Profile</Menu.Item>
+              <Menu.Item>Account Settings</Menu.Item>
+              <Menu.Separator />
+              <Menu.Item onClick={handleSignOut}>Sign Out</Menu.Item>
+            </Menu.Content>
+          </Menu.Root>
         )}
       </Flex>
       
       {/* Sidebar for mobile */}
-      <Drawer.Root open={isOpen} onOpenChange={(open) => open ? onOpen() : onClose()}>
+      <Drawer.Root open={open} onOpenChange={(isOpen) => isOpen ? onOpen() : onClose()}>
         <Drawer.Backdrop />
         <Drawer.Content placement="left">
           <Drawer.CloseTrigger />

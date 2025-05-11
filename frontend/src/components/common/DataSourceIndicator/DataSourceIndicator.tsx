@@ -99,7 +99,7 @@ export function DataSourceIndicator({ dataSource, lastUpdated }: DataSourceIndic
   
   return (
     <Tooltip label={tooltip} placement="top">
-      <HStack spacing={1} opacity={0.8} fontSize="xs">
+      <HStack gap={1} opacity={0.8} fontSize="xs">
         {/* Connection status */}
         <Box 
           w="8px" 
@@ -110,7 +110,7 @@ export function DataSourceIndicator({ dataSource, lastUpdated }: DataSourceIndic
         />
         
         {/* Data source */}
-        <Badge colorScheme={color} variant="subtle" px={2} py={0.5}>
+        <Badge colorPalette={color} variant="subtle" px={2} py={0.5}>
           {label}
         </Badge>
         

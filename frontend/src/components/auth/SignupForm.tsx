@@ -8,7 +8,11 @@ import {
   Button,
   Stack,
   Input,
+  Field,
+  InputGroup,
+  InputRightElement,
 } from '@chakra-ui/react';
+import { Icon } from '@/components/ui/icons';
 
 type SignupFormData = {
   email: string;
@@ -17,8 +21,9 @@ type SignupFormData = {
 };
 
 export function SignupForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   
   const {
@@ -29,9 +34,11 @@ export function SignupForm() {
   } = useForm<SignupFormData>();
   
   const password = watch('password', '');
+  
+  const handlePasswordVisibility = () => setShowPassword(!showPassword);
 
   const onSubmit = async (data: SignupFormData) => {
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
     
     try {
@@ -47,7 +54,7 @@ export function SignupForm() {
       setError('Signup failed. Please try again.');
       console.error('Signup error:', err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -60,11 +67,10 @@ export function SignupForm() {
       )}
       
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Stack direction="column" spacing={4}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+        <Stack direction="column" gap={4}>
+          <Field.Root invalid={Boolean(errors.email)}>
+            <Field.Label>Email</Field.Label>
             <Input
-              id="email"
               type="email"
               placeholder="your@email.com"
               {...register('email', {
@@ -75,44 +81,55 @@ export function SignupForm() {
                 },
               })}
             />
-            {errors.email && <div className="error-message">{errors.email.message}</div>}
-          </div>
+            {errors.email && (
+              <Field.ErrorText>{errors.email.message?.toString()}</Field.ErrorText>
+            )}
+          </Field.Root>
           
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="********"
-              {...register('password', {
-                required: 'Password is required',
-                minLength: {
-                  value: 8,
-                  message: 'Password must be at least 8 characters',
-                },
-              })}
-            />
-            {errors.password && <div className="error-message">{errors.password.message}</div>}
-          </div>
+          <Field.Root invalid={Boolean(errors.password)}>
+            <Field.Label>Password</Field.Label>
+            <InputGroup>
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="********"
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters',
+                  },
+                })}
+              />
+              <InputRightElement width="3rem">
+                <Button h="1.5rem" size="sm" onClick={handlePasswordVisibility}>
+                  {showPassword ? <Icon name="view-off" /> : <Icon name="view" />}
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+            {errors.password && (
+              <Field.ErrorText>{errors.password.message?.toString()}</Field.ErrorText>
+            )}
+          </Field.Root>
           
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+          <Field.Root invalid={Boolean(errors.confirmPassword)}>
+            <Field.Label>Confirm Password</Field.Label>
             <Input
-              id="confirmPassword"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="********"
               {...register('confirmPassword', {
                 required: 'Please confirm your password',
                 validate: value => value === password || 'Passwords do not match',
               })}
             />
-            {errors.confirmPassword && <div className="error-message">{errors.confirmPassword.message}</div>}
-          </div>
+            {errors.confirmPassword && (
+              <Field.ErrorText>{errors.confirmPassword.message?.toString()}</Field.ErrorText>
+            )}
+          </Field.Root>
           
           <Button
             type="submit"
             colorPalette="blue"
-            isLoading={isLoading}
+            loading={loading}
             width="full"
             mt={4}
           >

@@ -1,30 +1,26 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import '@/app/globals.css'
-import { AppLayout } from '@/components/layout/AppLayout'
-import { ChakraProvider } from '@/components/providers/ChakraProvider'
-
-const inter = Inter({ subsets: ['latin'] })
+import { Metadata } from "next";
+import { ChakraProvider } from "@/components/providers/ChakraProvider";
+import { Toaster } from "@/components/ui/toaster";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Viewzenix - Trading Webhook Platform',
-  description: 'Connect TradingView alerts to broker APIs for automated trading',
-}
+  title: "Viewzenix - Trading Webhook Platform",
+  description: "Connect TradingView alerts to broker APIs with automated trading rules and risk parameters",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className="hydrated">
-      <body className={inter.className} data-cz-shortcut-listen="true">
+    <html lang="en" suppressHydrationWarning>
+      <body>
         <ChakraProvider>
-          <AppLayout>
-            {children}
-          </AppLayout>
+          {children}
+          <Toaster />
         </ChakraProvider>
       </body>
     </html>
-  )
+  );
 }

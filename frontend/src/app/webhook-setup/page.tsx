@@ -1,235 +1,91 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { WebhookConfigForm, WebhookCard } from '@/components/webhook'
-import { webhookService } from '@/services/webhook.service'
-import { WebhookConfig } from '@/types/webhook'
-import { Button, StatusMessage } from '@/components/common'
-import styles from './page.module.css'
+import { Box, Container, Heading, Text } from '@chakra-ui/react';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { WebhookConfigForm } from '@/components/webhook/WebhookConfigForm';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function WebhookSetupPage() {
-  // State for webhooks data
-  const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
-  // State for UI controls
-  const [showForm, setShowForm] = useState(false);
-  const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null);
-  const [statusMessage, setStatusMessage] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
-
-  // Fetch webhooks on component mount
+  // Check authentication on page load
   useEffect(() => {
-    const fetchWebhooks = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const webhooksData = await webhookService.getWebhooks();
-        setWebhooks(webhooksData);
-      } catch (err) {
-        setError('Failed to load webhook configurations. Please try again later.');
-        console.error('Error fetching webhooks:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchWebhooks();
-  }, []);
-
-  // Handle webhook creation success - wrapped in useCallback to prevent unnecessary re-renders
-  const handleWebhookCreated = useCallback((webhook: WebhookConfig) => {
-    setWebhooks(prevWebhooks => [...prevWebhooks, webhook]);
-    setShowForm(false);
-    setStatusMessage({
-      type: 'success',
-      message: 'Webhook configuration created successfully!'
-    });
-  }, []);
-
-  // Handle edit button click - wrapped in useCallback
-  const handleEditWebhook = useCallback((webhook: WebhookConfig) => {
-    setEditingWebhook(webhook);
-    setShowForm(true);
-  }, []);
-
-  // Handle webhook update success - wrapped in useCallback
-  const handleWebhookUpdated = useCallback((updatedWebhook: WebhookConfig) => {
-    setWebhooks(prevWebhooks => 
-      prevWebhooks.map(webhook => 
-        webhook?.id === updatedWebhook?.id ? updatedWebhook : webhook
-      )
-    );
-    setEditingWebhook(null);
-    setShowForm(false);
-    setStatusMessage({
-      type: 'success',
-      message: 'Webhook configuration updated successfully!'
-    });
-  }, []);
-
-  // Handle webhook status change - wrapped in useCallback
-  const handleStatusChange = useCallback((updatedWebhook: WebhookConfig) => {
-    if (!updatedWebhook) return;
-    
-    setWebhooks(prevWebhooks => 
-      prevWebhooks.map(webhook => 
-        webhook?.id === updatedWebhook?.id ? updatedWebhook : webhook
-      )
-    );
-    setStatusMessage({
-      type: 'success',
-      message: `Webhook ${updatedWebhook.isActive ? 'activated' : 'deactivated'} successfully!`
-    });
-  }, []);
-
-  // Handle cancel button click - wrapped in useCallback
-  const handleCancelForm = useCallback(() => {
-    setShowForm(false);
-    setEditingWebhook(null);
-  }, []);
-
-  // Handle delete webhook - wrapped in useCallback
-  const handleDeleteWebhook = useCallback(async (id: string) => {
-    if (!id) return;
-    
-    // Simple confirmation
-    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this webhook configuration?')) {
-      return;
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+    } else {
+      setLoading(false);
     }
-    
-    try {
-      await webhookService.deleteWebhook(id);
-      
-      // Update state by removing the deleted webhook
-      setWebhooks(prevWebhooks => prevWebhooks.filter(webhook => webhook?.id !== id));
-      
-      setStatusMessage({
-        type: 'success',
-        message: 'Webhook configuration deleted successfully!'
-      });
-    } catch (err) {
-      setStatusMessage({
-        type: 'error',
-        message: 'Failed to delete webhook configuration. Please try again.'
-      });
-    }
-  }, []);
+  }, [router]);
 
-  // Helper function to create new webhook button
-  const renderCreateWebhookButton = useCallback(() => (
-    <Button 
-      onClick={() => setShowForm(true)}
-      disabled={loading}
-    >
-      Create New Webhook
-    </Button>
-  ), [loading]);
+  if (loading) {
+    return null;
+  }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Webhook Setup</h1>
-          <p className={styles.subtitle}>Configure your TradingView webhook endpoints to receive trading signals.</p>
-        </div>
+    <AppLayout>
+      <Container maxW="container.lg" py={8}>
+        <Box mb={8}>
+          <Heading as="h1" size="xl" mb={2}>
+            Webhook Setup
+          </Heading>
+          <Text color="gray.600" _dark={{ color: 'gray.300' }}>
+            Configure your webhook endpoint to receive trading signals from TradingView
+          </Text>
+        </Box>
+
+        <WebhookConfigForm />
         
-        {!showForm && renderCreateWebhookButton()}
-      </div>
-      
-      {statusMessage && (
-        <StatusMessage
-          type={statusMessage.type}
-          message={statusMessage.message}
-          onDismiss={() => setStatusMessage(null)}
-        />
-      )}
-      
-      {showForm ? (
-        <div className={styles.formSection}>
-          <h2 className={styles.sectionTitle}>
-            {editingWebhook ? 'Edit Webhook Configuration' : 'Create New Webhook Configuration'}
-          </h2>
+        <Box mt={12}>
+          <Heading as="h2" size="md" mb={4}>
+            How to Use Your Webhook
+          </Heading>
           
-          <WebhookConfigForm
-            onSuccess={editingWebhook ? handleWebhookUpdated : handleWebhookCreated}
-            onCancel={handleCancelForm}
-            defaultValues={editingWebhook || undefined}
-          />
-        </div>
-      ) : (
-        <>
-          <div className={styles.infoSection}>
-            <h2 className={styles.sectionTitle}>Getting Started with Webhooks</h2>
-            <div className={styles.infoCard}>
-              <h3 className={styles.infoTitle}>How to Use Webhooks with TradingView</h3>
-              <ol className={styles.instructionsList}>
-                <li>Create a webhook configuration below to generate a unique webhook URL</li>
-                <li>Set up an alert in TradingView and select "Webhook" as the alert action</li>
-                <li>Enter your webhook URL from Viewzenix in the TradingView alert settings</li>
-                <li>Include your security token in the alert message JSON body as <code>"passphrase": "your-token"</code></li>
-                <li>Add any additional trading parameters needed for your strategy</li>
-              </ol>
-              
-              <h3 className={styles.infoTitle}>Security Best Practices</h3>
-              <ul className={styles.bestPracticesList}>
-                <li>Use a strong, unique security token for each webhook</li>
-                <li>Never share your webhook URLs or security tokens</li>
-                <li>Regularly rotate your security tokens for enhanced security</li>
-                <li>Review webhook activity logs regularly for any suspicious activity</li>
-              </ul>
-              
-              <h3 className={styles.infoTitle}>Example TradingView Alert Message</h3>
-              <div className={styles.codeBlock}>
-                <pre>{`{
-  "passphrase": "your-security-token",
-  "ticker": "AAPL",
-  "action": "BUY",
+          <Box 
+            p={4} 
+            bg="gray.50" 
+            _dark={{ bg: 'gray.700' }} 
+            borderRadius="md"
+            fontSize="sm"
+          >
+            <Text mb={3}>
+              <strong>Step 1:</strong> In TradingView, create a new alert for your indicator or strategy.
+            </Text>
+            <Text mb={3}>
+              <strong>Step 2:</strong> In the alert dialog, select "Webhook URL" as the alert action.
+            </Text>
+            <Text mb={3}>
+              <strong>Step 3:</strong> Copy and paste your webhook URL from above.
+            </Text>
+            <Text mb={3}>
+              <strong>Step 4:</strong> In the message field, include your passphrase and trading parameters:
+            </Text>
+            <Box 
+              as="pre" 
+              p={3} 
+              bg="gray.100" 
+              _dark={{ bg: 'gray.800' }} 
+              borderRadius="md" 
+              overflowX="auto"
+              mb={3}
+            >
+              {`{
+  "passphrase": "YOUR_PASSPHRASE",
+  "ticker": "{{ticker}}",
+  "action": "{{strategy.order.action}}",
   "quantity": 10,
-  "price": 150.50,
-  "order_type": "MARKET",
-  "stop_loss": 145.00,
-  "take_profit": 160.00,
-  "time_in_force": "DAY"
-}`}</pre>
-              </div>
-            </div>
-          </div>
-          
-          <div className={styles.webhooksSection}>
-            <h2 className={styles.sectionTitle}>Your Webhook Configurations</h2>
-            
-            {loading ? (
-              <div className={styles.loadingState}>Loading webhook configurations...</div>
-            ) : error ? (
-              <div className={styles.errorState}>{error}</div>
-            ) : webhooks.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p>You haven't created any webhook configurations yet.</p>
-                {renderCreateWebhookButton()}
-              </div>
-            ) : (
-              <div className={styles.webhooksList}>
-                {webhooks.map(webhook => 
-                  webhook ? (
-                    <WebhookCard
-                      key={webhook.id}
-                      webhook={webhook}
-                      onEdit={handleEditWebhook}
-                      onDelete={handleDeleteWebhook}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ) : null
-                )}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  )
+  "price": {{close}},
+  "order_type": "MARKET"
+}`}
+            </Box>
+            <Text>
+              <strong>Step 5:</strong> Save your alert. When triggered, it will send the trading signal to Viewzenix.
+            </Text>
+          </Box>
+        </Box>
+      </Container>
+    </AppLayout>
+  );
 }

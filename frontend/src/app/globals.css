@@ -4,45 +4,46 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --background-start-rgb: 245, 245, 245;
   --background-end-rgb: 255, 255, 255;
 }
 
-/* Disable dark mode media query which is causing color issues */
-/*
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 18, 18, 24;
+  --background-end-rgb: 30, 30, 40;
 }
-*/
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: #f7fafc;
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  min-height: 100vh;
 }
 
-/* Form styling */
-.form-group {
-  margin-bottom: 1rem;
+/* Custom animations for collapsible */
+@keyframes expand-height {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.error-message {
-  color: #e53e3e;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@keyframes collapse-height {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
   }
 }

@@ -16,7 +16,7 @@ interface WebhookCardProps {
 export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: WebhookCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [loading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Handle keyboard events for accessibility
@@ -35,7 +35,7 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       // Use the correct method name that exists in the service
@@ -56,7 +56,7 @@ export function WebhookCard({ webhook, onDelete, onEdit, onStatusChange }: Webho
       console.error('Error toggling webhook status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update webhook status');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [webhook, onStatusChange]);
 

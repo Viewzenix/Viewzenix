@@ -6,7 +6,7 @@ import styles from './Button.module.css'
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
-  isLoading?: boolean;
+  loading?: boolean;
   icon?: React.ReactNode;
   fullWidth?: boolean;
 }
@@ -16,7 +16,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     children, 
     variant = 'primary', 
     size = 'md', 
-    isLoading = false, 
+    loading = false, 
     icon,
     fullWidth = false,
     className = '',
@@ -36,20 +36,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={buttonClasses}
-        disabled={disabled || isLoading}
+        disabled={disabled || loading}
         {...props}
       >
-        {isLoading && (
+        {loading && (
           <span className={styles.loadingSpinner} aria-hidden="true">
             <span className={styles.spinner}></span>
           </span>
         )}
         
-        {icon && !isLoading && (
+        {icon && !loading && (
           <span className={styles.icon}>{icon}</span>
         )}
         
-        <span className={isLoading ? styles.loadingText : ''}>
+        <span className={loading ? styles.loadingText : ''}>
           {children}
         </span>
       </button>
