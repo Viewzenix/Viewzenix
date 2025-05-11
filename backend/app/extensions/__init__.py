@@ -6,6 +6,7 @@ used throughout the application.
 """
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_cors import CORS
 from supabase import create_client, Client
 
 # Initialize Supabase client placeholder
@@ -25,6 +26,7 @@ def get_supabase_client() -> Client:
 # Initialize extensions
 db = SQLAlchemy()
 migrate = Migrate()
+cors = CORS()
 
 def init_extensions(app):
     """
@@ -45,6 +47,9 @@ def init_extensions(app):
     
     # Initialize Flask-Migrate
     migrate.init_app(app, db)
+    
+    # Initialize Flask-CORS
+    cors.init_app(app, resources={r"/*": {"origins": "*"}})
 
     # Initialize Supabase client
     supabase_client = create_client(

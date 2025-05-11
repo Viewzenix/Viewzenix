@@ -1,158 +1,125 @@
-import { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  FormControl, 
-  FormLabel, 
-  Input, 
-  VStack, 
-  FormErrorMessage, 
-  Alert, 
-  AlertIcon, 
-  Heading, 
-  Text 
-} from '@chakra-ui/react';
+'use client';
+
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { authService } from '@/services/auth.service';
+import { useRouter } from 'next/navigation';
+import {
+  Box,
+  Button,
+  Stack,
+  Input,
+} from '@chakra-ui/react';
 
-interface SignupFormProps {
-  onSuccess?: () => void;
-}
-
-interface SignupFormData {
+type SignupFormData = {
   email: string;
   password: string;
   confirmPassword: string;
-}
+};
 
-export function SignupForm({ onSuccess }: SignupFormProps) {
-  const { 
-    register, 
-    handleSubmit, 
+export function SignupForm() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  
+  const {
+    register,
+    handleSubmit,
     watch,
-    formState: { errors, isSubmitting } 
+    formState: { errors },
   } = useForm<SignupFormData>();
   
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
-  const password = watch('password');
-  
+  const password = watch('password', '');
+
   const onSubmit = async (data: SignupFormData) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setError(null);
-      setSuccessMessage(null);
+      // TODO: Replace with real auth integration
+      console.log('Signup attempt with:', data);
       
-      const result = await authService.signUp(data.email, data.password);
+      // Simulate successful registration
+      localStorage.setItem('isAuthenticated', 'true');
       
-      if (result.error) {
-        setError(result.error.message);
-        return;
-      }
-      
-      setSuccessMessage('Your account has been created! You can now sign in.');
-      
-      if (result.session && onSuccess) {
-        onSuccess();
-      }
+      // Redirect to dashboard after signup
+      router.push('/');
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Signup failed. Please try again.');
       console.error('Signup error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
+
   return (
-    <Box w="100%" maxW="400px" p={4}>
-      <Stack direction="column" spacing={6} align="stretch">
-        <Box textAlign="center">
-          <Heading size="lg">Create Account</Heading>
-          <Text mt={2} color="gray.600">Join Viewzenix trading platform</Text>
+    <Box>
+      {error && (
+        <Box color="red.500" mb={4} textAlign="center">
+          {error}
         </Box>
-        
-        {error && (
-          <Alert.Root status="error" borderRadius="md">
-            <Alert.Icon />
-            {error}
-          </Alert.Root>
-        )}
-        
-        {successMessage && (
-          <Alert.Root status="success" borderRadius="md">
-            <Alert.Icon />
-            {successMessage}
-          </Alert.Root>
-        )}
-        
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Stack direction="column" spacing={4}>
-            <FormControl invalid={!!errors.email}>
-              <FormLabel htmlFor="email">Email</FormLabel>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your.email@example.com"
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
-                  },
-                })}
-              />
-              <FormErrorMessage>
-                {errors.email && errors.email.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            <FormControl invalid={!!errors.password}>
-              <FormLabel htmlFor="password">Password</FormLabel>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                {...register('password', {
-                  required: 'Password is required',
-                  minLength: {
-                    value: 8,
-                    message: 'Password must be at least 8 characters',
-                  },
-                })}
-              />
-              <FormErrorMessage>
-                {errors.password && errors.password.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            <FormControl invalid={!!errors.confirmPassword}>
-              <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                {...register('confirmPassword', {
-                  required: 'Please confirm your password',
-                  validate: value => 
-                    value === password || 'Passwords do not match',
-                })}
-              />
-              <FormErrorMessage>
-                {errors.confirmPassword && errors.confirmPassword.message}
-              </FormErrorMessage>
-            </FormControl>
-            
-            <Button 
-              type="submit" 
-              colorPalette="brand" 
-              width="full" 
-              mt={4} 
-              loading={isSubmitting}
-              loadingText="Creating Account"
-            >
-              Create Account
-            </Button>
-          </VStack>
-        </form>
-      </VStack>
+      )}
+      
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Stack direction="column" spacing={4}>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="your@email.com"
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Invalid email address',
+                },
+              })}
+            />
+            {errors.email && <div className="error-message">{errors.email.message}</div>}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="********"
+              {...register('password', {
+                required: 'Password is required',
+                minLength: {
+                  value: 8,
+                  message: 'Password must be at least 8 characters',
+                },
+              })}
+            />
+            {errors.password && <div className="error-message">{errors.password.message}</div>}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="********"
+              {...register('confirmPassword', {
+                required: 'Please confirm your password',
+                validate: value => value === password || 'Passwords do not match',
+              })}
+            />
+            {errors.confirmPassword && <div className="error-message">{errors.confirmPassword.message}</div>}
+          </div>
+          
+          <Button
+            type="submit"
+            colorPalette="blue"
+            isLoading={isLoading}
+            width="full"
+            mt={4}
+          >
+            Create Account
+          </Button>
+        </Stack>
+      </form>
     </Box>
   );
 }

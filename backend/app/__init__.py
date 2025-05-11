@@ -96,7 +96,9 @@ def _register_blueprints(app: Flask) -> None:
     # Import blueprints
     from app.api.routes.webhook import webhook_bp
     from app.api.routes.webhook_config import webhook_config_bp
+    from app.api.routes.health import health_bp
     
     # Register blueprints
     app.register_blueprint(webhook_bp)
     app.register_blueprint(webhook_config_bp)
+    app.register_blueprint(health_bp)

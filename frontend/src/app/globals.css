@@ -4,18 +4,45 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
+/* Disable dark mode media query which is causing color issues */
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
-    --background-rgb: 10, 15, 25;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
   }
 }
+*/
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
-  min-height: 100vh;
+  background: #f7fafc;
+}
+
+/* Form styling */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.error-message {
+  color: #e53e3e;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }

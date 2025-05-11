@@ -7,18 +7,14 @@ import { webhookService } from '@/services/webhook.service';
 import {
   Box,
   Stack,
-  FormControl,
-  FormLabel,
   Input,
   Textarea,
   Checkbox,
   Switch,
   Button,
-  Alert,
-  AlertIcon,
-  FormErrorMessage,
   HStack,
   Text,
+  Alert,
 } from '@chakra-ui/react';
 
 interface WebhookConfigFormProps {
@@ -85,52 +81,76 @@ export function WebhookConfigForm({ onSuccess, onCancel, defaultValues }: Webhoo
     <Box bg="white" p={6} rounded="md" boxShadow="md">
       {status && (
         <Alert status={status.type} mb={4} rounded="md">
-          <AlertIcon />
           <Text>{status.message}</Text>
         </Alert>
       )}
       <Stack as="form" spacing={4} onSubmit={handleSubmit(onSubmit)}>
-        <FormControl invalid={!!errors.name}>
-          <FormLabel>Name</FormLabel>
-          <Input placeholder="Webhook name" {...register('name', { required: 'Required', maxLength: { value: 100, message: 'Max 100 chars' } })} />
-          <FormErrorMessage>{errors.name?.message}</FormErrorMessage>
-        </FormControl>
-        <FormControl invalid={!!errors.description}>
-          <FormLabel>Description</FormLabel>
-          <Textarea placeholder="Description" {...register('description', { maxLength: { value: 500, message: 'Max 500 chars' } })} />
-          <FormErrorMessage>{errors.description?.message}</FormErrorMessage>
-        </FormControl>
-        <FormControl invalid={!!errors.securityToken}>
-          <FormLabel>Security Token</FormLabel>
+        <div className="form-group">
+          <label htmlFor="name">Name</label>
+          <Input 
+            id="name"
+            placeholder="Webhook name" 
+            {...register('name', { 
+              required: 'Required', 
+              maxLength: { value: 100, message: 'Max 100 chars' } 
+            })} 
+          />
+          {errors.name && <div className="error-message">{errors.name.message}</div>}
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="description">Description</label>
+          <Textarea 
+            id="description"
+            placeholder="Description" 
+            {...register('description', { 
+              maxLength: { value: 500, message: 'Max 500 chars' } 
+            })} 
+          />
+          {errors.description && <div className="error-message">{errors.description.message}</div>}
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="securityToken">Security Token</label>
           <HStack>
-            <Input placeholder="Secure token" {...register('securityToken', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} />
+            <Input 
+              id="securityToken"
+              placeholder="Secure token" 
+              {...register('securityToken', { 
+                required: 'Required', 
+                minLength: { value: 8, message: 'Min 8 chars' } 
+              })} 
+            />
             <Button onClick={generateSecurityToken} size="sm" variant="outline">
               Generate
             </Button>
           </HStack>
-          <FormErrorMessage>{errors.securityToken?.message}</FormErrorMessage>
-        </FormControl>
-        <FormControl>
-          <FormLabel>Notification Preferences</FormLabel>
+          {errors.securityToken && <div className="error-message">{errors.securityToken.message}</div>}
+        </div>
+        
+        <div className="form-group">
+          <label>Notification Preferences</label>
           <HStack>
             <Checkbox {...register('notificationPreferences.email')}>Email</Checkbox>
             <Checkbox {...register('notificationPreferences.browser')}>Browser</Checkbox>
             <Checkbox {...register('notificationPreferences.onSuccess')}>On Success</Checkbox>
             <Checkbox {...register('notificationPreferences.onFailure')}>On Failure</Checkbox>
           </HStack>
-        </FormControl>
-        <FormControl display="flex" alignItems="center">
-          <FormLabel htmlFor="isActive" mb="0">
+        </div>
+        
+        <div className="form-group" style={{ display: 'flex', alignItems: 'center' }}>
+          <label htmlFor="isActive" style={{ marginBottom: 0, marginRight: '10px' }}>
             Active
-          </FormLabel>
+          </label>
           <Switch id="isActive" {...register('isActive')} />
-        </FormControl>
+        </div>
+        
         <HStack spacing={4} pt={4}>
-          <Button colorPalette="brand" type="submit" loading={isSubmitting}>
+          <Button colorPalette="blue" type="submit" isLoading={isSubmitting ? true : undefined}>
             {isEditMode ? 'Update' : 'Create'}
           </Button>
           {onCancel && (
-            <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            <Button variant="outline" onClick={onCancel} disabled={isSubmitting ? true : undefined}>
               Cancel
             </Button>
           )}

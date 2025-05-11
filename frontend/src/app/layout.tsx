@@ -2,8 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '@/app/globals.css'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { ChakraProvider, defaultSystem } from '@chakra-ui/react'
-import { ThemeProvider } from 'next-themes'
+import { ChakraProvider } from '@/components/providers/ChakraProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,14 +17,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ChakraProvider value={defaultSystem}>
-          <ThemeProvider attribute="class" disableTransitionOnChange>
-            <AppLayout>
-              {children}
-            </AppLayout>
-          </ThemeProvider>
+    <html lang="en" className="hydrated">
+      <body className={inter.className} data-cz-shortcut-listen="true">
+        <ChakraProvider>
+          <AppLayout>
+            {children}
+          </AppLayout>
         </ChakraProvider>
       </body>
     </html>
