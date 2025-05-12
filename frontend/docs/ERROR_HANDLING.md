@@ -13,6 +13,8 @@ Located at `services/error/error.service.ts`, this service provides:
 - Centralized error logging
 - User notifications via toast messages
 - Error categorization by severity and source
+- AppError class for typed application errors
+- Supabase-specific error handling
 - Extensibility for external error monitoring services
 
 ### 2. Error Boundary
@@ -33,6 +35,22 @@ Located at `components/common/errors/ErrorFallback.tsx`, this component:
 - Shows technical details in development mode
 - Provides a "Try Again" button to reset the error boundary
 
+### 4. Specialized Error Components
+
+Located in the `components/common/errors/` directory:
+
+- `NotFoundError.tsx`: For 404 errors
+- `AuthorizationError.tsx`: For 401/403 errors
+- `NetworkError.tsx`: For network connectivity issues
+
+### 5. Supabase Error Utilities
+
+Located at `utils/errors/supabase.errors.ts`, these utilities provide:
+
+- Mapping of Supabase error codes to user-friendly messages
+- Helper functions for handling Supabase-specific errors
+- Utilities to identify different types of Supabase errors
+
 ## Usage
 
 ### Using the Error Service
@@ -45,7 +63,12 @@ import {
   notifyInfo,
   ErrorSeverity,
   ErrorSource,
-  errorService
+  ErrorCode,
+  errorService,
+  createAppError,
+  handleAppError,
+  handleUnknownError,
+  notifySupabaseError
 } from '@/services/error';
 
 // Simple error notification
@@ -63,6 +86,29 @@ notifyWarning('Your session will expire soon');
 
 // Info notification
 notifyInfo('Changes saved successfully');
+
+// Using AppError for typed errors
+const appError = createAppError({
+  message: 'Invalid webhook configuration',
+  code: ErrorCode.VALIDATION_ERROR,
+  severity: ErrorSeverity.ERROR,
+  source: ErrorSource.UI
+});
+handleAppError(appError);
+
+// Handling unknown errors
+try {
+  await someOperation();
+} catch (error) {
+  handleUnknownError(error, 'Failed to complete operation');
+}
+
+// Supabase-specific error
+try {
+  await supabaseClient.auth.signIn({ email, password });
+} catch (error) {
+  notifySupabaseError(error, 'Login failed');
+}
 
 // Advanced usage with full control
 errorService.handleError({
@@ -127,7 +173,9 @@ Errors are categorized by source:
 1. **UI**: Errors originating in the user interface
 2. **API**: Errors from API calls
 3. **AUTH**: Authentication/authorization errors
-4. **UNKNOWN**: Errors with unidentified sources
+4. **SUPABASE**: Errors from Supabase operations
+5. **DATABASE**: Database-related errors
+6. **UNKNOWN**: Errors with unidentified sources
 
 ## Development vs. Production
 
@@ -135,6 +183,81 @@ The error handling system behaves differently based on the environment:
 
 - **Development**: Shows detailed error information including stack traces
 - **Production**: Shows user-friendly messages without technical details
+
+## Handling Supabase Errors
+
+The application includes specialized utilities for handling Supabase errors:
+
+```tsx
+import { 
+  handleSupabaseOperation,
+  isSupabaseError,
+  isSupabaseAuthError,
+  isSessionExpiredError,
+  isPermissionDeniedError,
+  mapSupabaseError
+} from '@/utils/errors';
+
+// Using the wrapper function for Supabase operations
+try {
+  const result = await handleSupabaseOperation(
+    () => supabaseClient.from('webhooks').select('*'),
+    'Failed to fetch webhooks'
+  );
+  // Process result
+} catch (error) {
+  // This error is already an AppError with proper mapping
+  handleAppError(error);
+}
+
+// Checking for specific Supabase error types
+try {
+  await supabaseClient.auth.signIn({ email, password });
+} catch (error) {
+  if (isSessionExpiredError(error)) {
+    // Handle expired session specifically
+    redirectToLogin();
+  } else if (isPermissionDeniedError(error)) {
+    // Handle permission issues
+    showPermissionError();
+  } else {
+    // Handle other errors
+    notifySupabaseError(error);
+  }
+}
+
+// Manual mapping of Supabase errors to AppError
+try {
+  await supabaseClient.from('webhooks').insert(newWebhook);
+} catch (error) {
+  const appError = mapSupabaseError(error, 'Failed to create webhook');
+  handleAppError(appError);
+}
+```
+
+## AppError Class
+
+The `AppError` class provides a standardized way to handle application errors:
+
+```tsx
+import { AppError, ErrorCode, ErrorSeverity, ErrorSource } from '@/services/error';
+
+// Creating an AppError instance
+const error = new AppError({
+  message: 'Invalid configuration',
+  code: ErrorCode.VALIDATION_ERROR,
+  severity: ErrorSeverity.ERROR,
+  source: ErrorSource.UI,
+  context: {
+    path: '/webhooks/create',
+    additionalData: { field: 'name', value: '' }
+  }
+});
+
+// Converting unknown errors to AppError
+const unknownError = getSomeError();
+const appError = AppError.fromUnknown(unknownError, 'An unexpected error occurred');
+```
 
 ## Integration with External Services
 
@@ -147,6 +270,8 @@ The error service includes a placeholder for sending errors to external monitori
 
 1. **Use specific error types**: Use the appropriate notification method based on the error type
 2. **Include context**: Provide relevant context with errors to aid debugging
-3. **Granular boundaries**: Use ErrorBoundary around specific components that might fail
-4. **User-friendly messages**: Write error messages that users can understand
-5. **Recovery options**: Provide ways for users to recover from errors
+3. **Use AppError**: For better error typing and consistent handling
+4. **Leverage Supabase helpers**: Use the Supabase error utilities for Supabase operations
+5. **Granular boundaries**: Use ErrorBoundary around specific components that might fail
+6. **User-friendly messages**: Write error messages that users can understand
+7. **Recovery options**: Provide ways for users to recover from errors

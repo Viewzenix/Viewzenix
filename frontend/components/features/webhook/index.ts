@@ -4,4 +4,8 @@
  * This barrel file exports all components related to webhook functionality.
  */
 
-// No components yet - this file will be populated as webhook components are added
+export * from './WebhookList';
+export * from './WebhookCard';
+export * from './WebhookDeleteConfirmation';
+export * from './WebhookForm';
+export * from './NotificationPreferencesForm';

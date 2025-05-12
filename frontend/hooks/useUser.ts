@@ -1,7 +1,7 @@
 'use client';
 
-import { useContext } from 'react';
-import { AuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { UserRole, UserWithRole } from '@/types/auth.types';
 
 /**
@@ -9,7 +9,8 @@ import { UserRole, UserWithRole } from '@/types/auth.types';
  * This hook is a convenient wrapper around useAuth for user-specific functionality
  */
 export function useUser() {
-  const { user, isLoading, hasRole, hasPermission } = useContext(AuthContext);
+  const { user, isLoading, session, error } = useAuth();
+  const { hasRole, hasPermission } = usePermissions();
   
   /**
    * Check if the user is an admin
@@ -51,13 +52,58 @@ export function useUser() {
     return userRoleValue >= minimumRoleValue;
   };
   
+  /**
+   * Check if the user is authenticated
+   */
+  const isAuthenticated = (): boolean => {
+    return !!session && !!user;
+  };
+  
+  /**
+   * Get user display name (email or name if available)
+   */
+  const getDisplayName = (): string => {
+    if (!user) return '';
+    
+    if (user.user_metadata?.name) {
+      return user.user_metadata.name as string;
+    }
+    
+    return user.email || '';
+  };
+  
+  /**
+   * Get user avatar URL if available
+   */
+  const getAvatarUrl = (): string | null => {
+    if (!user) return null;
+    
+    return (user.user_metadata?.avatar_url as string) || null;
+  };
+  
+  /**
+   * Check if user has verified their email
+   */
+  const isEmailVerified = (): boolean => {
+    if (!user) return false;
+    
+    // Handle different ways email verification might be stored
+    return user.email_confirmed_at !== null || 
+           (user.user_metadata?.email_verified === true);
+  };
+  
   return {
     user: user as UserWithRole | null,
     isLoading,
+    error,
     isAdmin,
     isTrader,
     isViewer,
     isAtLeastRole,
+    isAuthenticated,
+    getDisplayName,
+    getAvatarUrl,
+    isEmailVerified,
     hasRole,
     hasPermission,
   };

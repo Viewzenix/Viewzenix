@@ -1,0 +1,75 @@
+flowchart TD
+    %% Define styles
+    classDef boundary fill:#4FC3F7,stroke:#0277BD,color:black
+    classDef service fill:#CE93D8,stroke:#7B1FA2,color:black
+    classDef feedback fill:#AED581,stroke:#33691E,color:black
+    classDef logging fill:#FF8A65,stroke:#BF360C,color:black
+    classDef type fill:#FFD54F,stroke:#FF8F00,color:black
+    classDef flow fill:#90CAF9,stroke:#1565C0,color:black
+
+    %% Main Components
+    ErrorBoundary["Error Boundary"]:::boundary
+    ErrorService["Error Service"]:::service
+    UserFeedback["User Feedback\n(Toasts, UI)"]:::feedback
+    ErrorLogging["Error Logging\n& Monitoring"]:::logging
+    
+    %% Error Types
+    AppError["AppError"]:::type
+    UI["UI Errors"]:::type
+    API["API Errors"]:::type
+    Auth["Auth Errors"]:::type
+    Supabase["Supabase Errors"]:::type
+    
+    %% Flow Components
+    ErrorOccurs["Error Occurs"]:::flow
+    ErrorCaptured["Error Captured"]:::flow
+    ErrorProcessing["Error Processing"]:::flow
+    ErrorCategorization["Error Categorization"]:::flow
+    UserNotification["User Notification"]:::flow
+    ErrorLog["Error Logging"]:::flow
+    Recovery["Recovery Options"]:::flow
+    
+    %% Relationships - Main Components
+    ErrorBoundary <--> ErrorService
+    ErrorService <--> UserFeedback
+    ErrorService --> ErrorLogging
+    
+    %% Relationships - Error Types
+    AppError --> ErrorService
+    UI --> ErrorService
+    API --> ErrorService
+    Auth --> ErrorService
+    Supabase --> ErrorService
+    
+    %% Flow
+    ErrorOccurs --> ErrorCaptured
+    ErrorCaptured --> ErrorProcessing
+    ErrorProcessing --> ErrorCategorization
+    ErrorCategorization --> UserNotification
+    ErrorCategorization --> ErrorLog
+    UserNotification --> Recovery
+    
+    %% Subgraphs
+    subgraph "Error Components"
+        ErrorBoundary
+        ErrorService
+        UserFeedback
+    end
+    
+    subgraph "Error Types"
+        AppError
+        UI
+        API
+        Auth
+        Supabase
+    end
+    
+    subgraph "Error Flow"
+        ErrorOccurs
+        ErrorCaptured
+        ErrorProcessing
+        ErrorCategorization
+        UserNotification
+        ErrorLog
+        Recovery
+    end

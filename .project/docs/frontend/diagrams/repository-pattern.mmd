@@ -1,0 +1,42 @@
+flowchart TD
+    %% Define styles
+    classDef component fill:#4FC3F7,stroke:#0277BD,color:black
+    classDef interface fill:#AED581,stroke:#33691E,color:black
+    classDef implementation fill:#FFD54F,stroke:#FF8F00,color:black
+    classDef dataSource fill:#FF8A65,stroke:#BF360C,color:black
+    classDef factory fill:#CE93D8,stroke:#7B1FA2,color:black
+
+    %% Components
+    Component["Components/Hooks"]:::component
+    RepositoryInterface["Repository Interfaces"]:::interface
+    Factory["Repository Factory"]:::factory
+    SubaImpl["Supabase Implementation"]:::implementation
+    RestImpl["REST API Implementation"]:::implementation
+    LocalImpl["LocalStorage Implementation"]:::implementation
+    Supabase["Supabase"]:::dataSource
+    RestAPI["REST API"]:::dataSource
+    LocalStorage["LocalStorage"]:::dataSource
+
+    %% Relationships
+    Component <--> RepositoryInterface
+    RepositoryInterface --> Factory
+    Factory --> SubaImpl
+    Factory --> RestImpl
+    Factory --> LocalImpl
+    SubaImpl <--> Supabase
+    RestImpl <--> RestAPI
+    LocalImpl <--> LocalStorage
+
+    %% Subgraph for Implementation
+    subgraph Implementations
+        SubaImpl
+        RestImpl
+        LocalImpl
+    end
+
+    %% Subgraph for Data Sources
+    subgraph "Data Sources"
+        Supabase
+        RestAPI
+        LocalStorage
+    end

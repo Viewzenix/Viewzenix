@@ -1,9 +1,3 @@
----
-title: "Frontend Development Roadmap (2025 Rebuild)"
-author: "Frontend Agent"
-date: "2025-06-10"
-version: "2.0.0"
----
 
 # Frontend Development Roadmap (2025 Rebuild)
 
@@ -30,13 +24,16 @@ This roadmap is the result of a comprehensive review of project documentation, b
 ## 📅 Phased Development Plan
 
 ### Phase 1: Foundation & Core Infrastructure
+
 **Objectives:**
+
 - Establish project structure and architecture
 - Implement authentication and core services
 - Set up repository pattern and configuration
 - Build essential UI shell and layouts
 
 **Key Deliverables:**
+
 - Project structure (feature-based folders, strict tsconfig)
 - Supabase authentication (JWT, secure cookies)
 - Repository interfaces and factory
@@ -45,6 +42,7 @@ This roadmap is the result of a comprehensive review of project documentation, b
 - Type-safe models and constants
 
 **Tasks:**
+
 - [ ] Set up Next.js/TypeScript project with strict mode
 - [ ] Configure Chakra UI and theming system
 - [ ] Implement environment/config loader and validation
@@ -57,12 +55,15 @@ This roadmap is the result of a comprehensive review of project documentation, b
 - [ ] Document architecture and core patterns
 
 ### Phase 2: Feature Implementation
+
 **Objectives:**
+
 - Implement all core user-facing features
 - Integrate with backend API and Supabase
 - Ensure robust error handling and optimistic UI
 
 **Key Deliverables:**
+
 - Webhook management UI (CRUD, toggle, notifications)
 - Broker connection/configuration UI
 - Bot configuration panels
@@ -70,6 +71,7 @@ This roadmap is the result of a comprehensive review of project documentation, b
 - Repository pattern fully integrated with backend
 
 **Tasks:**
+
 - [ ] Implement WebhookConfig CRUD UI (list, create, edit, delete, toggle)
 - [ ] Integrate repository with backend API endpoints (see backend_api_documentation.md)
 - [ ] Implement optimistic UI updates and error fallback
@@ -81,18 +83,22 @@ This roadmap is the result of a comprehensive review of project documentation, b
 - [ ] Document all feature APIs and UI flows
 
 ### Phase 3: Advanced Features & Optimization
+
 **Objectives:**
+
 - Add advanced trading and risk management features
 - Optimize performance and security
 - Enhance user experience and accessibility
 
 **Key Deliverables:**
+
 - Global SL/TP monitoring interface
 - Limit order configuration UI
 - Performance and security optimizations
 - Comprehensive error handling and offline support
 
 **Tasks:**
+
 - [ ] Implement global SL/TP monitoring and visualization
 - [ ] Add limit order configuration and advanced order types
 - [ ] Optimize code splitting, memoization, and virtualization
@@ -102,17 +108,21 @@ This roadmap is the result of a comprehensive review of project documentation, b
 - [ ] Document advanced features and optimizations
 
 ### Phase 4: Testing, Documentation & Maintenance
+
 **Objectives:**
+
 - Ensure reliability, maintainability, and knowledge transfer
 - Establish robust testing and documentation practices
 - Set up ongoing progress tracking and roadmap review
 
 **Key Deliverables:**
+
 - Unit, integration, and E2E test suites
 - Complete documentation for all components/services
 - Roadmap and Kanban board maintenance process
 
 **Tasks:**
+
 - [ ] Write unit tests for all components, hooks, and services (React Testing Library, Jest)
 - [ ] Implement integration tests for repository and API flows
 - [ ] Create E2E tests for critical user journeys (Cypress/Playwright)
@@ -136,6 +146,7 @@ This roadmap is the result of a comprehensive review of project documentation, b
 ---
 
 ## 📚 References
+
 - [Backend API Documentation](../specifications/backend_api_documentation.md)
 - [Current State Analysis](../project-state/current-state-analysis.md)
 - [Integration Guidelines](../guides/frontend-backend-integration.md)

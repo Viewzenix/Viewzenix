@@ -35,3 +35,4 @@
 - VZX-FE-052: Align Toggle Method and Clean Up API Client (5/12/2025)
 - TASK-123: Build main App layout with persistent sidebar and navigation (2025-06-12)
 - TASK-124: Add error boundary and centralized error service (2025-06-12)
+- TASK-125: Document architecture and core patterns (2024-05-20)

@@ -1,7 +1,7 @@
 # Authentication Flow
 
 ## Overview
-This document outlines the authentication flow implemented in the Viewzenix frontend, using Supabase for authentication with JWT tokens stored in HTTP-only cookies.
+This document outlines the authentication flow implemented in the Viewzenix frontend, using Supabase for authentication with JWT tokens stored in HTTP-only cookies. The system supports role-based access control (RBAC) and granular permissions.
 
 ## Architecture
 
@@ -19,6 +19,14 @@ This document outlines the authentication flow implemented in the Viewzenix fron
 │   Auth Context  │      │  HTTP Cookies   │      │ Auth Middleware │
 │                 │      │                 │      │                 │
 └─────────────────┘      └─────────────────┘      └─────────────────┘
+        │                                                 │
+        │                                                 │
+        ▼                                                 ▼
+┌─────────────────┐                             ┌─────────────────┐
+│                 │                             │                 │
+│    Auth Hooks   │                             │ Route Protection│
+│                 │                             │                 │
+└─────────────────┘                             └─────────────────┘
 ```
 
 ## Key Components
@@ -32,35 +40,57 @@ This document outlines the authentication flow implemented in the Viewzenix fron
 - `context/AuthContext.tsx`: Global state provider for authentication
 - Exposes user data, session, and auth methods
 - Implements RBAC (Role-Based Access Control)
+- Handles session refreshing and token management
 
 ### 3. Authentication Hooks
-- `useAuth()`: Direct access to auth context
-- `useUser()`: Simplified user-focused wrapper
+- `useAuth()`: Main hook for auth state and methods
+- `useUser()`: User-focused wrapper with convenience methods
+- `usePermissions()`: Permission checking and RBAC utilities
 
 ### 4. Auth Components
-- `AuthForms.tsx`: Login, Signup, and Reset password forms
-- `RoleBasedGuard.tsx`: Components for protecting routes/content by role or permission
+- `LoginForm.tsx`: Authentication form for user login
+- `SignupForm.tsx`: Form for new user registration
+- `ResetPasswordForm.tsx`: Form for password reset requests
+- `RoleBasedGuard.tsx`: Component for role-based content protection
+- `PermissionGuard.tsx`: Component for permission-based content protection
+
+### 5. Route Protection
+- `withAuth()`: Higher-Order Component (HOC) for protecting routes
+- `withAdminAuth()`: HOC specifically for admin-only routes
+- `withTraderAuth()`: HOC for trader-level access routes
 
 ## Authentication Flow
 
 1. **Initial Page Load**:
    - Middleware checks for existing session cookies
    - If found, refreshes the token and sets the session
+   - Auth context initializes and subscribes to auth state changes
 
 2. **User Login**:
-   - User submits credentials via `AuthForm`
+   - User submits credentials via `LoginForm`
    - Supabase validates credentials and returns a session
    - Session is stored in HTTP-only cookies
    - Auth context is updated with user information
+   - Redirect to the originally requested page or dashboard
 
 3. **Session Management**:
    - Session refreshing happens automatically via middleware
-   - Auth context subscribes to auth state changes
+   - `updateSession` function refreshes tokens before expiration
+   - Auth context subscribes to auth state changes via `onAuthStateChange`
+   - Handles token refresh events with proper state updates
 
-4. **Role-Based Access Control**:
+4. **Session Expiration**:
+   - Session expiration is detected automatically
+   - User is redirected to login with return URL
+   - Original request path is preserved for post-login redirect
+   - `handleSessionExpired` utility manages the expiration flow
+
+5. **Role-Based Access Control**:
    - User roles and permissions are stored in Supabase user metadata
-   - `RoleBasedGuard` and `PermissionGuard` components control access to protected UI
-   - `useUser()` hook provides convenience methods for role/permission checks
+   - Roles hierarchy: Admin > Trader > Viewer
+   - `RoleBasedGuard` and `PermissionGuard` components protect UI content
+   - `withAuth` HOC protects entire routes and pages
+   - Unauthorized access attempts redirect to appropriate error pages
 
 ## Security Considerations
 
@@ -79,13 +109,30 @@ This document outlines the authentication flow implemented in the Viewzenix fron
 - Default user role is `viewer` with limited permissions
 - Admin users need to be manually assigned in Supabase dashboard
 
+## Permission System
+
+The permission system is based on:
+
+1. **User Roles**: Three primary roles with hierarchical privileges:
+   - `ADMIN`: Complete system access
+   - `TRADER`: Ability to manage trading configurations
+   - `VIEWER`: Read-only access to own data
+
+2. **Granular Permissions**: Specific actions a user can perform:
+   - Format: `action:resource` (e.g., `edit:webhooks`)
+   - Grouped into logical permission sets (e.g., `WEBHOOK_MANAGEMENT`)
+
+3. **Permission Inheritance**: Higher roles inherit permissions from lower roles
+
+The complete permission structure is defined in `hooks/usePermissions.ts`.
+
 ## Usage Examples
 
-### Protected Component
+### Protected Component with Role-Based Guard
 
 ```tsx
-import { RoleBasedGuard } from '@/components/common/RoleBasedGuard';
-import { UserRole } from '@/types/auth';
+import { RoleBasedGuard } from '@/components/auth';
+import { UserRole } from '@/types/auth.types';
 
 const AdminDashboard = () => {
   return (
@@ -96,21 +143,56 @@ const AdminDashboard = () => {
 };
 ```
 
+### Protected Component with Permission Guard
+
+```tsx
+import { PermissionGuard } from '@/components/auth';
+
+const WebhookConfigEditor = () => {
+  return (
+    <PermissionGuard requiredPermissions={['edit:webhooks']}>
+      <div>Webhook editing interface</div>
+    </PermissionGuard>
+  );
+};
+```
+
+### Protected Route with HOC
+
+```tsx
+import { withAuth } from '@/utils/auth';
+import { UserRole } from '@/types/auth.types';
+
+const AdminSettingsPage = () => {
+  // Component implementation...
+};
+
+// Export with authentication wrapper
+export default withAuth(AdminSettingsPage, {
+  requireAuth: true,
+  allowedRoles: [UserRole.ADMIN],
+  requiredPermissions: ['configure:system'],
+});
+```
+
 ### Using Authentication Hooks
 
 ```tsx
-import { useUser } from '@/hooks/useUser';
+import { useUser, usePermissions } from '@/hooks';
 
 const ProfileSection = () => {
-  const { user, isAdmin, hasPermission } = useUser();
+  const { user, isAdmin, getDisplayName, isEmailVerified } = useUser();
+  const { canManageWebhooks, canManageBrokers } = usePermissions();
   
   if (!user) return <div>Please log in</div>;
   
   return (
     <div>
-      <h2>Welcome, {user.email}</h2>
+      <h2>Welcome, {getDisplayName()}</h2>
+      {!isEmailVerified() && <div>Please verify your email</div>}
       {isAdmin() && <div>Admin Controls</div>}
-      {hasPermission('edit:webhooks') && <EditWebhooksButton />}
+      {canManageWebhooks() && <EditWebhooksButton />}
+      {canManageBrokers() && <BrokerSettingsButton />}
     </div>
   );
 };

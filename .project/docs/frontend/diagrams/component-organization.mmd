@@ -1,0 +1,78 @@
+flowchart TD
+    %% Define styles
+    classDef root fill:#BBDEFB,stroke:#1976D2,color:black
+    classDef category fill:#4FC3F7,stroke:#0277BD,color:black
+    classDef subcategory fill:#81D4FA,stroke:#0288D1,color:black
+    classDef component fill:#AED581,stroke:#33691E,color:black
+    classDef layout fill:#FFD54F,stroke:#FF8F00,color:black
+    classDef feature fill:#FF8A65,stroke:#BF360C,color:black
+    
+    %% Root
+    Components["Components"]:::root
+    
+    %% Main Categories
+    Auth["Auth Components"]:::category
+    Common["Common Components"]:::category
+    Layout["Layout Components"]:::layout
+    Features["Feature Components"]:::feature
+    
+    %% Subcategories
+    ErrorComponents["Error Components"]:::subcategory
+    UIComponents["UI Components"]:::subcategory
+    Webhook["Webhook Components"]:::subcategory
+    Trading["Trading Components"]:::subcategory
+    Analytics["Analytics Components"]:::subcategory
+    
+    %% Components
+    LoginForm["LoginForm"]:::component
+    SignupForm["SignupForm"]:::component
+    RoleGuard["RoleBasedGuard"]:::component
+    ErrorBoundary["ErrorBoundary"]:::component
+    Button["Button"]:::component
+    Modal["Modal"]:::component
+    Sidebar["Sidebar"]:::component
+    Navbar["Navbar"]:::component
+    WebhookList["WebhookList"]:::component
+    WebhookForm["WebhookForm"]:::component
+    OrderForm["OrderForm"]:::component
+    Charts["Charts"]:::component
+    
+    %% Relationships
+    Components --> Auth
+    Components --> Common
+    Components --> Layout
+    Components --> Features
+    
+    Common --> ErrorComponents
+    Common --> UIComponents
+    
+    Features --> Webhook
+    Features --> Trading
+    Features --> Analytics
+    
+    Auth --> LoginForm
+    Auth --> SignupForm
+    Auth --> RoleGuard
+    
+    ErrorComponents --> ErrorBoundary
+    
+    UIComponents --> Button
+    UIComponents --> Modal
+    
+    Layout --> Sidebar
+    Layout --> Navbar
+    
+    Webhook --> WebhookList
+    Webhook --> WebhookForm
+    
+    Trading --> OrderForm
+    
+    Analytics --> Charts
+    
+    %% Subgraphs
+    subgraph "Component Categories"
+        Auth
+        Common
+        Layout
+        Features
+    end

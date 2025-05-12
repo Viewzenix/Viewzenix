@@ -29,13 +29,16 @@ Base URL: `<API_BASE_URL>/webhooks`
 - **Description**: Retrieve all webhook configurations for the authenticated user.
 - **Authentication**: Supabase JWT (Bearer token).
 - **Response** (200):
+
   ```json
   {
     "status": "success",
     "data": [ /* Array of WebhookConfig objects */ ]
   }
   ```
+
 - **Error** (500 Server Error):
+
   ```json
   {
     "status": "error",
@@ -60,6 +63,7 @@ Base URL: `<API_BASE_URL>/webhooks`
 - **Description**: Create a new webhook configuration.
 - **Authentication**: Supabase JWT.
 - **Request Body**:
+
   ```json
   {
     "name": "string",                     // required, 1-255 chars
@@ -74,13 +78,16 @@ Base URL: `<API_BASE_URL>/webhooks`
     "isActive": boolean                     // optional, default true
   }
   ```
+
 - **Response** (201):
+
   ```json
   {
     "status": "success",
     "data": { /* Created WebhookConfig object */ }
   }
   ```
+
 - **Errors**:
   - `400 BAD_REQUEST`: Schema validation errors.
   - `401 UNAUTHORIZED`: User not authenticated.
@@ -93,6 +100,7 @@ Base URL: `<API_BASE_URL>/webhooks`
   - `id` (string, UUID)
 - **Authentication**: Supabase JWT.
 - **Request Body**:
+
   ```json
   {
     "name": "string",
@@ -102,6 +110,7 @@ Base URL: `<API_BASE_URL>/webhooks`
     "isActive": boolean
   }
   ```
+
 - **Response** (200): Updated WebhookConfig object.
 - **Errors**:
   - `400 BAD_REQUEST`, `404 NOT_FOUND`, `500 SERVER_ERROR`.
@@ -113,12 +122,14 @@ Base URL: `<API_BASE_URL>/webhooks`
   - `id` (string, UUID)
 - **Authentication**: Supabase JWT.
 - **Response** (200):
+
   ```json
   {
     "status": "success",
     "message": "Webhook configuration deleted successfully"
   }
   ```
+
 - **Errors**:
   - `404 NOT_FOUND`, `500 SERVER_ERROR`.
 
@@ -129,9 +140,11 @@ Base URL: `<API_BASE_URL>/webhooks`
   - `id` (string, UUID)
 - **Authentication**: Supabase JWT.
 - **Request Body**:
+
   ```json
   { "isActive": boolean }
   ```
+
 - **Response** (200): Updated WebhookConfig object.
 - **Errors**:
   - `400 BAD_REQUEST`, `404 NOT_FOUND`, `500 SERVER_ERROR`.
@@ -147,6 +160,7 @@ Base URL: `<API_BASE_URL>/webhook`
 - **Description**: Receive TradingView alerts and convert into orders.
 - **Authentication**: Passphrase in request body (`passphrase`).
 - **Request Body**:
+
   ```json
   {
     "passphrase": "string",                        // required
@@ -160,8 +174,10 @@ Base URL: `<API_BASE_URL>/webhook`
     "time_in_force": "DAY" | "GTC" | "IOC" | "FOK" // optional
   }
   ```
+
 - **Responses**:
   - **200 OK** (Success):
+
     ```json
     {
       "status": "success",
@@ -178,7 +194,9 @@ Base URL: `<API_BASE_URL>/webhook`
       }
     }
     ```
+
   - **401 UNAUTHORIZED** (Invalid passphrase):
+
     ```json
     {
       "status": "error",
@@ -186,18 +204,25 @@ Base URL: `<API_BASE_URL>/webhook`
       "message": "Invalid passphrase"
     }
     ```
+
   - **400 BAD_REQUEST** (Trade or sizing errors):
+
     ```json
     { "status": "error", "code": "TRADE_ERROR", "message": "..." }
     ```
+
     ```json
     { "status": "error", "code": "ORDER_SIZING_ERROR", "message": "..." }
     ```
+
   - **502 BAD_GATEWAY** (Broker errors):
+
     ```json
     { "status": "error", "code": "BROKER_ERROR", "message": "..." }
     ```
+
   - **500 SERVER_ERROR**:
+
     ```json
     { "status": "error", "code": "SERVER_ERROR", "message": "An unexpected error occurred processing the webhook" }
     ```
@@ -213,6 +238,7 @@ Base URL: `<API_BASE_URL>/health`
 - **Description**: Health check endpoint (CORS-enabled).
 - **Authentication**: None.
 - **Response** (200):
+
   ```json
   { "status": "ok" }
   ```
@@ -307,4 +333,4 @@ Base URL: `<API_BASE_URL>/health`
 | 500       | SERVER_ERROR           | Unexpected server error                             |
 | 502       | BROKER_ERROR           | Broker interaction error                            |
 
---- 
+---
