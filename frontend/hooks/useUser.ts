@@ -1,14 +1,15 @@
 'use client';
 
-import { useAuth } from '@/context/AuthContext';
-import { UserRole, UserWithRole } from '@/types/auth';
+import { useContext } from 'react';
+import { AuthContext } from '@/context/AuthContext';
+import { UserRole, UserWithRole } from '@/types/auth.types';
 
 /**
  * Hook that provides user information and helper functions
  * This hook is a convenient wrapper around useAuth for user-specific functionality
  */
 export function useUser() {
-  const { user, isLoading, hasRole, hasPermission } = useAuth();
+  const { user, isLoading, hasRole, hasPermission } = useContext(AuthContext);
   
   /**
    * Check if the user is an admin

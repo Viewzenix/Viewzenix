@@ -1,4 +1,4 @@
-import { ProviderHealth, RepositoryOptions, RepositoryType } from '@/types/repository/repository.types';
+import { ProviderHealth, RepositoryOptions, RepositoryType } from '@/types';
 
 /**
  * Base repository factory interface

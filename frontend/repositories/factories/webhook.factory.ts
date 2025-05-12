@@ -1,7 +1,9 @@
 import { WebhookRepository } from '../interfaces/webhook.repository';
 import { AbstractRepositoryFactory } from './repository.factory';
-import { RepositoryType } from '@/types/repository/repository.types';
+import { RepositoryType } from '@/types';
 import { LocalStorageWebhookRepository } from '../implementations/local-storage/local-webhook.repository';
+import { SupabaseWebhookRepository } from '../implementations/supabase/webhook.repository';
+import { REPOSITORY_CONFIG } from '@/config/repository.config';
 
 /**
  * Factory for creating WebhookRepository instances
@@ -38,18 +40,17 @@ export class WebhookRepositoryFactory extends AbstractRepositoryFactory<WebhookR
       new LocalStorageWebhookRepository()
     );
     
-    // For now, Supabase and REST implementations are placeholders
-    // In a real implementation, these would be actual implementations
-    this.repositories.set(RepositoryType.SUPABASE, {} as WebhookRepository);
+    // Create the Supabase implementation
+    this.repositories.set(
+      RepositoryType.SUPABASE,
+      new SupabaseWebhookRepository()
+    );
+    
+    // For now, REST implementation is a placeholder
     this.repositories.set(RepositoryType.REST, {} as WebhookRepository);
     
-    // Override the default fallback order to prioritize localStorage
-    // for demonstration purposes
-    this.defaultOptions.fallbackOrder = [
-      RepositoryType.LOCAL_STORAGE,
-      RepositoryType.SUPABASE,
-      RepositoryType.REST,
-    ];
+    // Set the default options from the repository config
+    this.defaultOptions = REPOSITORY_CONFIG;
   }
 }
 

@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository';
 import { AuthMethods, UpdateUserProfileDto, User, UserPreferences } from '@/types/user.types';
-import { RepositoryResult, RepositoryVoidResult } from '@/types/repository/repository.types';
+import { RepositoryResult, RepositoryVoidResult } from '@/types';
 
 /**
  * Repository interface for user data

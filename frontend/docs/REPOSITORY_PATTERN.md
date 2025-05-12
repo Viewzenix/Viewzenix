@@ -138,7 +138,7 @@ async function fetchWebhooks() {
 
 ```typescript
 import { WebhookRepositoryFactory } from '@/repositories/factories';
-import { RepositoryType } from '@/types/repository/repository.types';
+import { RepositoryType } from '@/types';
 
 async function fetchWebhooks() {
   const repository = WebhookRepositoryFactory.getInstance().create({

@@ -1,6 +1,6 @@
 import { UserRepository } from '../interfaces/user.repository';
 import { AbstractRepositoryFactory } from './repository.factory';
-import { RepositoryType } from '@/types/repository/repository.types';
+import { RepositoryType } from '@/types';
 
 /**
  * Factory for creating UserRepository instances

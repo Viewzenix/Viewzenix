@@ -5,7 +5,7 @@ import {
   UpdateWebhookConfigDto,
   WebhookConfig
 } from '@/types/webhook.types';
-import { RepositoryResult, RepositoryVoidResult } from '@/types/repository/repository.types';
+import { RepositoryResult, RepositoryVoidResult } from '@/types';
 
 /**
  * Repository interface for webhook configurations

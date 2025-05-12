@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types/auth';
+import { UserRole } from '@/types/auth.types';
 import { Box, Text, Button } from '@chakra-ui/react';
 
 interface RoleBasedGuardProps {

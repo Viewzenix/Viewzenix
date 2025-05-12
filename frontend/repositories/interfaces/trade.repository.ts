@@ -1,6 +1,6 @@
 import { BaseRepository } from './base.repository';
-import { Order, OrderStatus, Trade } from '@/types/trade.types';
-import { RepositoryResult } from '@/types/repository/repository.types';
+import { Order, OrderStatus, Trade } from '@/types';
+import { RepositoryResult } from '@/types';
 
 /**
  * Repository interface for trade data
